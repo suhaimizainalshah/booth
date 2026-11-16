@@ -2,6 +2,14 @@
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
+## Put it online with GitHub Pages (5 minutes)
+1. On github.com click **New repository**, name it `booth`, choose **Public**, then **Create repository**.
+2. Click **uploading an existing file**, drag in `index.html` (and this README), then **Commit changes**.
+3. Go to **Settings → Pages**. Under *Build and deployment* choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
+4. After about a minute your editor is live at `https://<your-username>.github.io/booth/`. Share that link with friends and family.
+
+You can also just double-click `index.html` to use it on your own computer.
+
 ## What it does
 - **Open** by button, drag and drop, or paste (Ctrl+V).
 - **Crop** freely or to Square, 4:5, 3:2, 4:3, 16:9, 9:16 or the original shape.
@@ -12,8 +20,14 @@ One file (`index.html`), no account, no server. Photos are edited inside your br
 - **Remove background** with AI that runs on your device, then fill with white, grey, blue, black or any colour, or keep it see-through.
 - **Resize** by pixels or percentage, with proportions locked.
 - **Passport and ID photos** for the US, UK, Schengen/EU, Singapore, Malaysia, India, Australia, Canada, China, Japan or a custom size, with a face guide and print sheets for 4×6 in, 5×7 in or A4 paper.
+- **Compress and resize many photos at once:** drop in a whole folder, pick a size (longest side, width or percentage), format and quality, or keep every file under a limit such as 200 KB. See the saving for each photo and download them all as one ZIP. Camera and location data are removed.
 - **Save** as PNG, JPG, WebP (and AVIF where the browser supports it), choose quality and size, or keep the file under a limit such as 240 KB for online applications. Copy to clipboard or share on phones.
 - Undo/redo (Ctrl+Z / Ctrl+Shift+Z), hold **Compare** to see the original, **Start over** anytime.
+
+## Visitor and save counts
+Booth counts visits and saves anonymously with the free [Abacus](https://abacus.jasoncameron.dev) counter: no cookies, no names, no tracking across sites, and nothing is counted for visitors whose browser sends *Do Not Track* or *Global Privacy Control*. To see your totals, add `#stats` to your site address, for example `https://<you>.github.io/booth/#stats`. Change `COUNTER.ns` near the top of the script to a name only you use, or set `COUNTER.on` to `false` to switch counting off.
+
+Click the Booth logo at any time to go back to the start.
 
 ## Good to know
 - **Background removal needs the internet the first time.** It downloads an AI model (tens of MB) from IMG.LY's servers; your browser caches it after that. The photo itself is processed on your device.
