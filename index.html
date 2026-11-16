@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Booth: free photo editor and passport photo maker</title>
+<meta name="description" content="Crop, resize, filter, add text, remove backgrounds and make passport photos. Free, and your photos never leave your device.">
+<meta name="theme-color" content="#F3F5F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1D21" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23E0412B'/><rect x='7' y='7' width='8' height='8' rx='1.5' fill='white'/><rect x='17' y='7' width='8' height='8' rx='1.5' fill='white' opacity='.7'/><rect x='7' y='17' width='8' height='8' rx='1.5' fill='white' opacity='.7'/><rect x='17' y='17' width='8' height='8' rx='1.5' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Anton&family=Bebas+Neue&family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Lobster&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F7; --panel:#FFFFFF; --ink:#1B1F24; --muted:#5A646E; --line:#DDE2E7; --soft:#EBEEF1;
+  --stage:#E2E6EA; --accent:#E0412B; --accent-hover:#C93520; --on-accent:#FFFFFF; --guide:#0F9DB0;
+  --check-a:#FFFFFF; --check-b:#E6E9EC;
+  --ui:"Schibsted Grotesk","Segoe UI",system-ui,-apple-system,sans-serif;
+  --r-s:8px; --r-m:12px; --rail:84px; --side:320px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1A1D21; --panel:#22262B; --ink:#EDF0F3; --muted:#9BA5AF; --line:#343A41; --soft:#2B3036;
+    --stage:#131619; --accent:#FF5A3F; --accent-hover:#FF7259; --on-accent:#16110F; --guide:#3CCBDD;
+    --check-a:#2A2E33; --check-b:#22262B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1A1D21; --panel:#22262B; --ink:#EDF0F3; --muted:#9BA5AF; --line:#343A41; --soft:#2B3036;
+  --stage:#131619; --accent:#FF5A3F; --accent-hover:#FF7259; --on-accent:#16110F; --guide:#3CCBDD;
+  --check-a:#2A2E33; --check-b:#22262B; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--guide);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* App frame */
+.app{height:100%;display:grid;grid-template-rows:auto 1fr}
+.top{display:flex;align-items:center;gap:.5rem;padding:.6rem .9rem;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:.55rem;font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin-right:.6rem;user-select:none}
+.brand svg{flex:none}
+.top .spacer{flex:1}
+.ibtn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;height:38px;min-width:38px;padding:0 .7rem;border-radius:var(--r-s);border:1px solid transparent;background:transparent;font-weight:600;font-size:.92rem;color:var(--ink)}
+.ibtn:hover:not(:disabled){background:var(--soft)}
+.ibtn:disabled{opacity:.35;cursor:default}
+.ibtn svg{width:19px;height:19px;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;height:40px;padding:0 1rem;border-radius:var(--r-s);border:1px solid var(--line);background:var(--panel);font-weight:600}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover:not(:disabled){background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.btn svg{width:18px;height:18px}
+
+.work{display:grid;grid-template-columns:var(--rail) 1fr var(--side);min-height:0}
+.rail{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:.5rem .4rem;gap:.15rem;overflow:auto}
+.tool{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .2rem;border:0;border-radius:var(--r-m);background:transparent;font-size:.76rem;font-weight:600;color:var(--muted)}
+.tool svg{width:22px;height:22px}
+.tool:hover:not(:disabled){background:var(--soft);color:var(--ink)}
+.tool[aria-selected="true"]{background:var(--ink);color:var(--panel)}
+.tool:disabled{opacity:.35;cursor:default}
+.tool.pp{margin-top:auto}
+.tool.pp[aria-selected="false"] svg{color:var(--accent)}
+
+.stage{position:relative;min-height:0;min-width:0;background:var(--stage);display:grid;place-items:center;overflow:hidden;touch-action:none}
+.wrap{position:relative;line-height:0;background-color:var(--check-a);background-image:conic-gradient(var(--check-b) 25%,transparent 0 50%,var(--check-b) 0 75%,transparent 0);background-size:20px 20px;box-shadow:0 12px 40px -18px rgba(0,0,0,.45)}
+#view{display:block}
+.stage.texting #view{cursor:crosshair}
+.stage.texting.over-text #view{cursor:move}
+
+/* Crop overlay */
+.crop{position:absolute;outline:2px solid #fff;box-shadow:0 0 0 9999px rgba(10,12,14,.58);touch-action:none;cursor:move}
+.wrap.cropping{overflow:hidden}
+.crop .grid{position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(to right,transparent calc(33.33% - .5px),rgba(255,255,255,.55) 0 calc(33.33% + .5px),transparent 0 calc(66.66% - .5px),rgba(255,255,255,.55) 0 calc(66.66% + .5px),transparent 0),
+  linear-gradient(to bottom,transparent calc(33.33% - .5px),rgba(255,255,255,.55) 0 calc(33.33% + .5px),transparent 0 calc(66.66% - .5px),rgba(255,255,255,.55) 0 calc(66.66% + .5px),transparent 0)}
+.crop.pp .grid{display:none}
+.h{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;touch-action:none}
+.h::after{content:"";position:absolute;inset:8px;background:#fff;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.h[data-h=nw]{left:0;top:0;cursor:nwse-resize}.h[data-h=ne]{left:100%;top:0;cursor:nesw-resize}
+.h[data-h=sw]{left:0;top:100%;cursor:nesw-resize}.h[data-h=se]{left:100%;top:100%;cursor:nwse-resize}
+.h[data-h=n]{left:50%;top:0;cursor:ns-resize}.h[data-h=s]{left:50%;top:100%;cursor:ns-resize}
+.h[data-h=w]{left:0;top:50%;cursor:ew-resize}.h[data-h=e]{left:100%;top:50%;cursor:ew-resize}
+.crop.locked .h[data-h=n],.crop.locked .h[data-h=s],.crop.locked .h[data-h=e],.crop.locked .h[data-h=w]{display:none}
+.guide{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.crop-size{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);background:rgba(10,12,14,.8);color:#fff;font-size:.78rem;font-weight:600;line-height:1;padding:.35rem .55rem;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
+
+/* Empty state */
+.empty{display:grid;justify-items:center;text-align:center;gap:1.1rem;padding:2rem;max-width:560px}
+.strip{display:grid;grid-template-columns:repeat(4,58px);gap:6px;padding:8px;background:var(--ink);border-radius:6px;transform:rotate(-4deg);margin-bottom:.6rem;box-shadow:0 16px 30px -16px rgba(0,0,0,.5)}
+.strip span{aspect-ratio:3/4;border-radius:2px;background:linear-gradient(160deg,var(--soft),var(--line));position:relative;overflow:hidden}
+.strip span::after{content:"";position:absolute;left:50%;top:30%;width:44%;aspect-ratio:3/4;transform:translateX(-50%);border-radius:50%;background:var(--muted);opacity:.55;box-shadow:0 26px 0 6px var(--muted)}
+.strip span:nth-child(2)::after{transform:translateX(-50%) rotate(-8deg)}
+.strip span:nth-child(3)::after{transform:translateX(-40%)}
+.strip span:nth-child(4){background:linear-gradient(160deg,var(--accent),#F2A08E)}
+@media (prefers-reduced-motion:no-preference){.strip span{animation:flash 6s infinite}.strip span:nth-child(2){animation-delay:.25s}.strip span:nth-child(3){animation-delay:.5s}.strip span:nth-child(4){animation-delay:.75s}}
+@keyframes flash{0%,6%{filter:brightness(1.9)}12%,100%{filter:none}}
+.empty h1{font-size:clamp(1.6rem,3.4vw,2.3rem);line-height:1.12;letter-spacing:-.025em;margin:0;font-weight:800;text-wrap:balance}
+.empty p{margin:0;color:var(--muted);max-width:44ch}
+.empty .row{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center}
+.stage.drag::after{content:"Drop to open";position:absolute;inset:14px;border:3px dashed var(--guide);border-radius:16px;display:grid;place-items:center;font-size:1.4rem;font-weight:700;color:var(--guide);background:color-mix(in srgb,var(--stage) 80%,transparent)}
+
+/* Side panel */
+.side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;min-height:0}
+.side.closed{display:none}
+.work:has(.side.closed){grid-template-columns:var(--rail) 1fr}
+.pane{padding:1.1rem 1.1rem 1.6rem;display:grid;gap:1rem;align-content:start}
+.pane h2{font-size:1.15rem;margin:0;letter-spacing:-.01em}
+.pane .hint{margin:-.5rem 0 0;color:var(--muted);font-size:.88rem}
+.group{display:grid;gap:.5rem}
+.group>.lbl{font-size:.82rem;font-weight:600;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.chip{height:34px;padding:0 .75rem;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:.86rem;font-weight:600}
+.chip:hover{background:var(--soft)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem}
+.sq{height:44px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--panel);display:grid;place-items:center}
+.sq:hover{background:var(--soft)}
+.sq svg{width:20px;height:20px}
+.slider{display:grid;grid-template-columns:1fr auto;gap:.25rem .5rem;align-items:center}
+.slider label{font-weight:600;font-size:.9rem}
+.slider output{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted);min-width:3ch;text-align:right}
+.slider input{grid-column:1/-1}
+input[type=range]{width:100%;accent-color:var(--accent);height:24px}
+.field{display:grid;gap:.3rem}
+.field label{font-size:.82rem;font-weight:600;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{width:100%;height:40px;padding:0 .7rem;border:1px solid var(--line);border-radius:var(--r-s);background:var(--paper)}
+textarea{height:auto;padding:.55rem .7rem;resize:vertical;min-height:64px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--guide);box-shadow:0 0 0 3px color-mix(in srgb,var(--guide) 25%,transparent)}
+.lock{display:flex;align-items:end;gap:.4rem}
+.lock .field{flex:1}
+.lock .sq{width:40px;height:40px;flex:none}
+.lock .sq[aria-pressed="true"]{color:var(--accent)}
+.note{font-size:.84rem;color:var(--muted);margin:0}
+.sep{height:1px;background:var(--line);margin:.2rem 0}
+.swatches{display:flex;flex-wrap:wrap;gap:.45rem}
+.sw{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);position:relative}
+.sw[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
+.sw.none{background:conic-gradient(var(--check-b) 25%,var(--check-a) 0 50%,var(--check-b) 0 75%,var(--check-a) 0);background-size:14px 14px}
+.sw input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.sw.custom{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
+.filters{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem}
+.fx{border:0;background:transparent;padding:0;display:grid;gap:.3rem;font-size:.8rem;font-weight:600;color:var(--muted);text-align:center}
+.fx img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-s);background:var(--soft);border:2px solid transparent}
+.fx[aria-pressed="true"]{color:var(--ink)}
+.fx[aria-pressed="true"] img{border-color:var(--accent)}
+.texts{display:grid;gap:.35rem}
+.tli{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:var(--r-s);background:var(--panel);text-align:left;width:100%}
+.tli[aria-pressed="true"]{border-color:var(--accent)}
+.tli span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.toggles{display:flex;gap:.35rem;flex-wrap:wrap}
+.tg{height:38px;min-width:38px;padding:0 .7rem;border:1px solid var(--line);border-radius:var(--r-s);background:var(--panel);font-weight:600}
+.tg[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:.85rem;counter-reset:st}
+.steps>li{counter-increment:st;display:grid;grid-template-columns:28px 1fr;gap:.2rem .7rem}
+.steps>li::before{content:counter(st);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-weight:700;font-size:.85rem;grid-row:span 3}
+.steps>li.done::before{content:"✓";background:var(--guide);color:#fff}
+.steps h3{margin:.15rem 0 0;font-size:.98rem}
+.steps .body{display:grid;gap:.5rem;grid-column:2}
+.progress{height:8px;border-radius:99px;background:var(--soft);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.bgbusy{display:grid;gap:.4rem}
+
+/* Dialog */
+dialog{border:0;padding:0;border-radius:16px;background:var(--panel);color:var(--ink);width:min(440px,94vw);box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(10,12,14,.55)}
+.dlg{padding:1.3rem;display:grid;gap:1rem}
+.dlg header{display:flex;justify-content:space-between;align-items:center}
+.dlg h2{margin:0;font-size:1.25rem}
+.est{display:flex;justify-content:space-between;font-size:.88rem;color:var(--muted);background:var(--paper);border-radius:var(--r-s);padding:.6rem .75rem;font-variant-numeric:tabular-nums}
+.est b{color:var(--ink)}
+.actions{display:grid;grid-template-columns:1fr auto auto;gap:.5rem}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--panel);padding:.7rem 1.1rem;border-radius:10px;font-weight:600;font-size:.92rem;z-index:50;transition:.25s;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* Mobile */
+@media (max-width:860px){
+  .brand span{display:none}
+  .top{padding:.45rem .5rem;gap:.15rem}
+  .ibtn .t{display:none}
+  .ibtn{min-width:34px;padding:0 .4rem}
+  .top .btn{padding:0 .75rem}
+  .brand{margin-right:.1rem}
+  .work{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto auto}
+  .stage{grid-row:1}
+  .side{grid-row:2;border-left:0;border-top:1px solid var(--line);max-height:42vh}
+  .rail{grid-row:3;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:.3rem;overflow-x:auto;padding-bottom:calc(.3rem + env(safe-area-inset-bottom,0px))}
+  :root{padding-bottom:0}
+  .tool{flex:1 0 64px;padding:.45rem .2rem}
+  .tool.pp{margin-top:0}
+  .pane{padding:.9rem 1rem 1.2rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand" aria-label="Booth">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><rect x="7" y="7" width="8" height="8" rx="1.5" fill="#fff"/><rect x="17" y="7" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="7" y="17" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="17" y="17" width="8" height="8" rx="1.5" fill="#fff"/></svg>
+      <span>Booth</span>
+    </div>
+    <button class="ibtn" id="openBtn" title="Open a photo (O)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12M7 9l5-5 5 5"/></svg><span class="t">Open</span></button>
+    <button class="ibtn" id="undoBtn" disabled title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button class="ibtn" id="redoBtn" disabled title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+    <button class="ibtn" id="compareBtn" disabled title="Hold to see the original"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg><span class="t">Hold to compare</span></button>
+    <div class="spacer"></div>
+    <button class="ibtn" id="resetBtn" disabled title="Undo every change"><span class="t">Start over</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="m"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <button class="btn primary" id="exportBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Save</button>
+  </header>
+
+  <div class="work">
+    <nav class="rail" role="tablist" aria-label="Tools">
+      <button class="tool" role="tab" data-tool="crop" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></svg>Crop</button>
+      <button class="tool" role="tab" data-tool="adjust" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Adjust</button>
+      <button class="tool" role="tab" data-tool="filters" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="10" r="5.5"/><circle cx="15" cy="10" r="5.5"/><circle cx="12" cy="15" r="5.5"/></svg>Filters</button>
+      <button class="tool" role="tab" data-tool="text" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
+      <button class="tool" role="tab" data-tool="background" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-6 7-6s6.2 2.4 7 6"/><path d="M3 3l3 3M21 3l-3 3" opacity=".6"/></svg>Background</button>
+      <button class="tool" role="tab" data-tool="resize" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Resize</button>
+      <button class="tool pp" role="tab" data-tool="passport" aria-selected="false" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2.5" width="16" height="19" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7.5 17.5c.9-2 2.6-3 4.5-3s3.6 1 4.5 3"/></svg>Passport</button>
+    </nav>
+
+    <main class="stage" id="stage">
+      <section class="empty" id="empty">
+        <div class="strip" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <h1>Edit a photo or make a passport photo</h1>
+        <p>Crop, resize, filter, add text and remove backgrounds. It’s free, and your photos never leave this device.</p>
+        <div class="row">
+          <button class="btn primary" id="emptyOpen">Open a photo</button>
+          <button class="btn" id="emptyPassport">Make a passport photo</button>
+        </div>
+        <p class="note">You can also drop a photo here or paste one with Ctrl+V.</p>
+      </section>
+      <div class="wrap" id="wrap" hidden>
+        <canvas id="view" aria-label="Your photo"></canvas>
+        <div class="crop" id="crop" hidden>
+          <div class="grid"></div>
+          <svg class="guide" id="guide" hidden></svg>
+          <div class="h" data-h="nw"></div><div class="h" data-h="n"></div><div class="h" data-h="ne"></div><div class="h" data-h="e"></div>
+          <div class="h" data-h="se"></div><div class="h" data-h="s"></div><div class="h" data-h="sw"></div><div class="h" data-h="w"></div>
+          <span class="crop-size" id="cropSize"></span>
+        </div>
+      </div>
+    </main>
+
+    <aside class="side closed" id="side" aria-live="polite">
+      <!-- CROP -->
+      <section class="pane" data-pane="crop" hidden>
+        <h2 id="cropTitle">Crop and rotate</h2>
+        <p class="hint" id="cropHint">Drag the corners to choose what to keep.</p>
+        <div class="group" id="aspectGroup"><span class="lbl">Shape</span>
+          <div class="chips" id="aspects"></div>
+        </div>
+        <div class="group"><span class="lbl">Rotate and flip</span>
+          <div class="row4">
+            <button class="sq" data-op="rotl" title="Rotate left" aria-label="Rotate left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v6h6"/><path d="M3.5 10A8.5 8.5 0 1 1 6 16.5"/></svg></button>
+            <button class="sq" data-op="rotr" title="Rotate right" aria-label="Rotate right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v6h-6"/><path d="M20.5 10A8.5 8.5 0 1 0 18 16.5"/></svg></button>
+            <button class="sq" data-op="fliph" title="Flip horizontally" aria-label="Flip horizontally"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M9 6 3 18h6zM15 6l6 12h-6z"/></svg></button>
+            <button class="sq" data-op="flipv" title="Flip vertically" aria-label="Flip vertically"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12h18" stroke-dasharray="2 2.5"/><path d="M6 9 18 3v6zM6 15l12 6v-6z"/></svg></button>
+          </div>
+        </div>
+        <div class="row2">
+          <button class="btn" id="cropCancel">Cancel</button>
+          <button class="btn primary" id="cropApply">Apply crop</button>
+        </div>
+      </section>
+
+      <!-- ADJUST -->
+      <section class="pane" data-pane="adjust" hidden>
+        <h2>Adjust</h2>
+        <p class="hint">Double-click a slider to reset it.</p>
+        <div id="sliders" class="group" style="gap:.9rem"></div>
+        <button class="btn" id="adjReset">Reset adjustments</button>
+      </section>
+
+      <!-- FILTERS -->
+      <section class="pane" data-pane="filters" hidden>
+        <h2>Filters</h2>
+        <div class="filters" id="filterGrid"></div>
+        <div class="slider" id="intensityWrap"><label for="intensity">Strength</label><output id="intensityOut">100%</output><input type="range" id="intensity" min="0" max="100" value="100"></div>
+      </section>
+
+      <!-- TEXT -->
+      <section class="pane" data-pane="text" hidden>
+        <h2>Text</h2>
+        <p class="hint">Drag text on the photo to move it.</p>
+        <button class="btn primary" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add text</button>
+        <div class="texts" id="textList"></div>
+        <div class="group" id="textEditor" hidden>
+          <div class="field"><label for="tContent">Words</label><textarea id="tContent" rows="2"></textarea></div>
+          <div class="field"><label for="tFont">Font</label><select id="tFont"></select></div>
+          <div class="slider"><label for="tSize">Size</label><output id="tSizeOut"></output><input type="range" id="tSize" min="2" max="40" step=".5"></div>
+          <div class="row2">
+            <div class="field"><label for="tColor">Colour</label><input type="color" id="tColor" style="height:40px;padding:2px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--paper)"></div>
+            <div class="field"><label>Align</label><select id="tAlign"><option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
+          </div>
+          <div class="toggles" role="group" aria-label="Style">
+            <button class="tg" id="tBold" aria-pressed="false" style="font-weight:800">B</button>
+            <button class="tg" id="tItalic" aria-pressed="false" style="font-style:italic">I</button>
+            <button class="tg" id="tStroke" aria-pressed="false">Outline</button>
+            <button class="tg" id="tShadow" aria-pressed="false">Shadow</button>
+            <button class="tg" id="tBox" aria-pressed="false">Label</button>
+          </div>
+          <button class="btn" id="tDelete">Delete this text</button>
+        </div>
+      </section>
+
+      <!-- BACKGROUND -->
+      <section class="pane" data-pane="background" hidden>
+        <h2>Background</h2>
+        <p class="hint">Removes the background using AI that runs on this device.</p>
+        <button class="btn primary" id="bgRemove">Remove background</button>
+        <div class="bgbusy" id="bgBusy" hidden><div class="progress"><i id="bgBar"></i></div><p class="note" id="bgMsg"></p></div>
+        <div class="group"><span class="lbl">Fill behind the photo</span>
+          <div class="swatches" id="bgSwatches"></div>
+          <p class="note">Shows wherever the photo is see-through, such as after removing the background.</p>
+        </div>
+      </section>
+
+      <!-- RESIZE -->
+      <section class="pane" data-pane="resize" hidden>
+        <h2>Resize</h2>
+        <p class="hint" id="sizeNow"></p>
+        <div class="lock">
+          <div class="field"><label for="rW">Width (px)</label><input type="number" id="rW" min="1" max="12000"></div>
+          <button class="sq" id="rLock" aria-pressed="true" title="Keep proportions" aria-label="Keep proportions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></button>
+          <div class="field"><label for="rH">Height (px)</label><input type="number" id="rH" min="1" max="12000"></div>
+        </div>
+        <div class="group"><span class="lbl">Quick sizes</span>
+          <div class="chips" id="rQuick">
+            <button class="chip" data-pct="25">25%</button><button class="chip" data-pct="50">50%</button><button class="chip" data-pct="75">75%</button>
+            <button class="chip" data-w="1080">1080 wide</button><button class="chip" data-w="1920">1920 wide</button><button class="chip" data-w="800">800 wide</button>
+          </div>
+        </div>
+        <button class="btn primary" id="rApply">Apply size</button>
+      </section>
+
+      <!-- PASSPORT -->
+      <section class="pane" data-pane="passport" hidden>
+        <h2>Passport and ID photo</h2>
+        <ol class="steps">
+          <li id="ps1"><h3>Choose the photo type</h3><div class="body">
+            <select id="ppType" aria-label="Photo type"></select>
+            <p class="note" id="ppInfo"></p>
+            <div class="row2" id="ppCustom" hidden>
+              <div class="field"><label for="ppW">Width (mm)</label><input type="number" id="ppW" value="35" min="10" max="200"></div>
+              <div class="field"><label for="ppH">Height (mm)</label><input type="number" id="ppH" value="45" min="10" max="200"></div>
+            </div>
+          </div></li>
+          <li id="ps2"><h3>Line up the face</h3><div class="body">
+            <p class="note">Fit the head between the guide lines, eyes level.</p>
+            <button class="btn" id="ppFrame">Frame the face</button>
+          </div></li>
+          <li id="ps3"><h3>Make the background plain</h3><div class="body">
+            <button class="btn" id="ppBg">Remove background and use white</button>
+            <div class="swatches" id="ppSwatches"></div>
+          </div></li>
+          <li id="ps4"><h3>Save</h3><div class="body">
+            <button class="btn primary" id="ppSingle">Save one photo</button>
+            <div class="field"><label for="ppSheet">Print sheet</label><select id="ppSheet"><option value="4x6">4 × 6 in (10 × 15 cm) photo paper</option><option value="5x7">5 × 7 in photo paper</option><option value="a4">A4 paper</option></select></div>
+            <button class="btn" id="ppPrint">Save print sheet</button>
+            <p class="note" id="ppSheetInfo"></p>
+          </div></li>
+        </ol>
+        <p class="note">Rules differ by country and change over time. Check the official photo rules before you submit.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="file" accept="image/*" hidden>
+
+<dialog id="exportDlg" aria-labelledby="exTitle">
+  <form class="dlg" method="dialog" id="exForm">
+    <header><h2 id="exTitle">Save image</h2><button class="ibtn" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+    <div class="group"><span class="lbl">Format</span><div class="chips" id="exFormats"></div></div>
+    <p class="note" id="exAlphaNote" hidden>JPG can’t keep see-through areas, so they’ll be white.</p>
+    <div class="slider" id="exQualityWrap"><label for="exQuality">Quality</label><output id="exQualityOut">90%</output><input type="range" id="exQuality" min="30" max="100" value="90"></div>
+    <div class="row2">
+      <div class="field"><label for="exScale">Size</label><select id="exScale"><option value="1">Full size</option><option value="0.75">75%</option><option value="0.5">50%</option><option value="0.25">25%</option></select></div>
+      <div class="field"><label for="exLimit">Keep file under</label><select id="exLimit"><option value="0">No limit</option><option value="100">100 KB</option><option value="200">200 KB</option><option value="240">240 KB</option><option value="500">500 KB</option><option value="1000">1 MB</option><option value="2000">2 MB</option></select></div>
+    </div>
+    <div class="field"><label for="exName">File name</label><input type="text" id="exName" autocomplete="off"></div>
+    <div class="est"><span id="exDims">–</span><span>File size <b id="exSize">–</b></span></div>
+    <div class="actions">
+      <button type="button" class="btn primary" id="exSave">Download</button>
+      <button type="button" class="btn" id="exCopy">Copy</button>
+      <button type="button" class="btn" id="exShare" hidden>Share</button>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const MAX_DIM = 4096, HIST_MAX = 20;
+const BG_LIB = "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
+
+/* ---------- State ---------- */
+const freshAdj = () => ({ brightness: 0, contrast: 0, saturation: 0, warmth: 0, vignette: 0 });
+const S = { base: null, orig: null, adj: freshAdj(), filter: "none", intensity: 100, texts: [], bg: null };
+let hist = [], fut = [], tool = null, selId = null, fileName = "photo", passportFlow = false;
+
+const snap = () => ({ base: S.base, adj: { ...S.adj }, filter: S.filter, intensity: S.intensity, texts: S.texts.map(t => ({ ...t })), bg: S.bg });
+function commit() { hist.push(snap()); if (hist.length > HIST_MAX) hist.shift(); fut = []; syncHistory(); }
+function restore(s) {
+  const baseChanged = s.base !== S.base;
+  Object.assign(S, { base: s.base, adj: { ...s.adj }, filter: s.filter, intensity: s.intensity, texts: s.texts.map(t => ({ ...t })), bg: s.bg });
+  if (!S.texts.some(t => t.id === selId)) selId = null;
+  if (baseChanged) fitPreview();
+  syncPanels(); render(); syncHistory();
+}
+function undo() { if (!hist.length) return; fut.push(snap()); restore(hist.pop()); }
+function redo() { if (!fut.length) return; hist.push(snap()); restore(fut.pop()); }
+function syncHistory() { $("#undoBtn").disabled = !hist.length; $("#redoBtn").disabled = !fut.length; $("#resetBtn").disabled = !hist.length; }
+let sliderSession = false;
+function commitOnce() { if (!sliderSession) { commit(); sliderSession = true; } }
+addEventListener("pointerup", () => (sliderSession = false));
+addEventListener("keyup", () => (sliderSession = false));
+
+/* ---------- Helpers ---------- */
+function canvas(w, h) { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function resample(src, w, h) {
+  w = Math.round(w); h = Math.round(h);
+  let cur = src, cw = src.width, ch = src.height;
+  while (cw / 2 > w && ch / 2 > h) { const t = canvas(cw / 2, ch / 2), x = t.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(cur, 0, 0, t.width, t.height); cur = t; cw = t.width; ch = t.height; }
+  const out = canvas(w, h), x = out.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(cur, 0, 0, w, h); return out;
+}
+function toast(msg, ms = 2800) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), ms); }
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const hex = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const kb = n => n < 1024 * 1024 ? Math.round(n / 1024) + " KB" : (n / 1048576).toFixed(1) + " MB";
+const hasAlpha = c => { const k = Math.min(1, 256 / Math.max(c.width, c.height)), s = resample(c, c.width * k, c.height * k); const d = s.getContext("2d").getImageData(0, 0, s.width, s.height).data; for (let i = 3; i < d.length; i += 16) if (d[i] < 250) return true; return false; };
+
+/* ---------- Filters ---------- */
+const lum = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+const mixC = (a, b, t, o) => { o[0] = a[0] + (b[0] - a[0]) * t; o[1] = a[1] + (b[1] - a[1]) * t; o[2] = a[2] + (b[2] - a[2]) * t; };
+const satC = (r, g, b, s, o) => { const l = lum(r, g, b); o[0] = l + (r - l) * s; o[1] = l + (g - l) * s; o[2] = l + (b - l) * s; };
+const NAVY = hex("#16263F"), MIST = hex("#E9EEF4"), DUO_A = hex("#2B1A5E"), DUO_B = hex("#FF8C69"), CY_A = hex("#0D2E59"), CY_B = hex("#E6F2F7");
+const FILTERS = [
+  ["none", "Original", null],
+  ["grey", "Greyscale", (r, g, b, o) => { o[0] = o[1] = o[2] = lum(r, g, b); }],
+  ["bw", "Black & white", (r, g, b, o) => { o[0] = o[1] = o[2] = (lum(r, g, b) - 128) * 2.3 + 128; }],
+  ["mono", "Monochrome", (r, g, b, o) => mixC(NAVY, MIST, lum(r, g, b) / 255, o)],
+  ["sepia", "Sepia", (r, g, b, o) => { o[0] = .393 * r + .769 * g + .189 * b; o[1] = .349 * r + .686 * g + .168 * b; o[2] = .272 * r + .534 * g + .131 * b; }],
+  ["noir", "Noir", (r, g, b, o) => { const l = (lum(r, g, b) - 128) * 1.6 + 112; o[0] = o[1] = o[2] = l; }],
+  ["vintage", "Vintage", (r, g, b, o) => { const sr = .393 * r + .769 * g + .189 * b, sg = .349 * r + .686 * g + .168 * b, sb = .272 * r + .534 * g + .131 * b; o[0] = (r * .45 + sr * .55) * .86 + 30; o[1] = (g * .45 + sg * .55) * .86 + 22; o[2] = (b * .45 + sb * .55) * .82 + 18; }],
+  ["fade", "Fade", (r, g, b, o) => { satC(r, g, b, .7, o); o[0] = o[0] * .82 + 38; o[1] = o[1] * .82 + 38; o[2] = o[2] * .82 + 42; }],
+  ["vivid", "Vivid", (r, g, b, o) => { satC(r, g, b, 1.45, o); o[0] = (o[0] - 128) * 1.12 + 128; o[1] = (o[1] - 128) * 1.12 + 128; o[2] = (o[2] - 128) * 1.12 + 128; }],
+  ["warm", "Warm", (r, g, b, o) => { o[0] = r * 1.08 + 12; o[1] = g * 1.02 + 4; o[2] = b * .86; }],
+  ["cool", "Cool", (r, g, b, o) => { o[0] = r * .9; o[1] = g + 4; o[2] = b * 1.1 + 14; }],
+  ["golden", "Golden hour", (r, g, b, o) => { satC(r, g, b, 1.15, o); o[0] = o[0] * 1.1 + 14; o[1] = o[1] * 1.03 + 6; o[2] = o[2] * .8; }],
+  ["duotone", "Duotone", (r, g, b, o) => mixC(DUO_A, DUO_B, lum(r, g, b) / 255, o)],
+  ["cyano", "Cyanotype", (r, g, b, o) => mixC(CY_A, CY_B, lum(r, g, b) / 255, o)],
+  ["retro", "Retro", (r, g, b, o) => { const k = r / 255; o[0] = 255 * (k < .5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k)); o[1] = g * .95 + 8; o[2] = b * .72 + 46; }],
+  ["pop", "Pop art", (r, g, b, o) => { satC(r, g, b, 1.5, o); for (let i = 0; i < 3; i++) o[i] = Math.round(clamp(o[i], 0, 255) / 64) * 64; }],
+  ["invert", "Invert", (r, g, b, o) => { o[0] = 255 - r; o[1] = 255 - g; o[2] = 255 - b; }],
+];
+const FX = Object.fromEntries(FILTERS.map(f => [f[0], f[2]]));
+
+function needsPixels(a, f) { return f !== "none" || a.brightness || a.contrast || a.saturation || a.warmth; }
+function applyPixels(d, a, f, intensity) {
+  const fn = FX[f], k = intensity / 100, o = [0, 0, 0];
+  const br = a.brightness * 1.6, cv = a.contrast * 2.55, cf = (259 * (cv + 255)) / (255 * (259 - cv)), sat = 1 + a.saturation / 100, wm = a.warmth * .45;
+  const adj = a.brightness || a.contrast || a.saturation || a.warmth;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    let r = d[i], g = d[i + 1], b = d[i + 2];
+    if (adj) {
+      r += br; g += br; b += br;
+      if (cv) { r = cf * (r - 128) + 128; g = cf * (g - 128) + 128; b = cf * (b - 128) + 128; }
+      if (sat !== 1) { const l = lum(r, g, b); r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat; }
+      if (wm) { r += wm; b -= wm; }
+    }
+    if (fn) {
+      fn(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255), o);
+      if (k < 1) { r += (o[0] - r) * k; g += (o[1] - g) * k; b += (o[2] - b) * k; } else { r = o[0]; g = o[1]; b = o[2]; }
+    }
+    d[i] = r; d[i + 1] = g; d[i + 2] = b; // Uint8ClampedArray clamps
+  }
+}
+function processed(src, w, h, a = S.adj, f = S.filter, intensity = S.intensity) {
+  const c = canvas(w, h), x = c.getContext("2d", { willReadFrequently: true });
+  x.imageSmoothingQuality = "high"; x.drawImage(src, 0, 0, c.width, c.height);
+  if (needsPixels(a, f)) { const d = x.getImageData(0, 0, c.width, c.height); applyPixels(d.data, a, f, intensity); x.putImageData(d, 0, 0); }
+  if (a.vignette > 0) {
+    x.globalCompositeOperation = "source-atop";
+    const g = x.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * .28, c.width / 2, c.height / 2, Math.hypot(c.width, c.height) / 2);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${a.vignette / 100 * .85})`);
+    x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); x.globalCompositeOperation = "source-over";
+  }
+  return c;
+}
+
+/* ---------- Fonts & text ---------- */
+const FONTS = ["Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins", "Oswald", "Bebas Neue", "Anton", "Playfair Display", "Merriweather", "Lora", "Pacifico", "Lobster", "Dancing Script", "Great Vibes", "Caveat", "Permanent Marker", "Arial", "Georgia", "Times New Roman", "Courier New", "Impact"];
+const fontStr = (t, px) => `${t.italic ? "italic " : ""}${t.bold ? 700 : 400} ${px}px "${t.font}", sans-serif`;
+let textBoxes = [];
+function drawTexts(x, w, h, preview) {
+  if (preview) textBoxes = [];
+  for (const t of S.texts) {
+    const px = t.size / 100 * w, lines = (t.text || " ").split("\n"), lh = px * 1.18;
+    x.save(); x.font = fontStr(t, px); x.textBaseline = "middle"; x.textAlign = t.align;
+    const widths = lines.map(l => x.measureText(l).width), tw = Math.max(...widths), th = lh * lines.length;
+    const cx = t.x * w, cy = t.y * h, left = t.align === "center" ? cx - tw / 2 : t.align === "left" ? cx : cx - tw;
+    if (t.box) { const p = px * .3; x.fillStyle = luminance(t.color) > 140 ? "rgba(0,0,0,.6)" : "rgba(255,255,255,.85)"; roundRect(x, left - p, cy - th / 2 - p * .6, tw + p * 2, th + p * 1.2, px * .2); x.fill(); }
+    if (t.shadow) { x.shadowColor = "rgba(0,0,0,.55)"; x.shadowBlur = px * .18; x.shadowOffsetY = px * .06; }
+    lines.forEach((l, i) => {
+      const ly = cy - th / 2 + lh * (i + .5);
+      if (t.stroke) { x.lineJoin = "round"; x.lineWidth = Math.max(1, px * .09); x.strokeStyle = luminance(t.color) > 140 ? "#000" : "#fff"; x.strokeText(l, cx, ly); x.shadowColor = "transparent"; }
+      x.fillStyle = t.color; x.fillText(l, cx, ly);
+    });
+    x.restore();
+    if (preview) textBoxes.push({ id: t.id, x: left - 6, y: cy - th / 2 - 6, w: tw + 12, h: th + 12 });
+  }
+}
+function luminance(c) { const [r, g, b] = hex(c); return lum(r, g, b); }
+function roundRect(x, l, t, w, h, r) { x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath(); }
+
+/* ---------- Compose ---------- */
+function compose(src, w, h, { bg = S.bg, preview = false, cache = null } = {}) {
+  const out = canvas(w, h), x = out.getContext("2d");
+  const p = cache || processed(src, out.width, out.height);
+  if (bg) { x.fillStyle = bg; x.fillRect(0, 0, out.width, out.height); }
+  x.drawImage(p, 0, 0);
+  drawTexts(x, out.width, out.height, preview);
+  return out;
+}
+
+/* ---------- Preview ---------- */
+const stage = $("#stage"), wrap = $("#wrap"), view = $("#view"), vx = view.getContext("2d");
+let pv = null, pcache = { key: "", c: null };
+function fitPreview() {
+  if (!S.base) return;
+  const aw = Math.max(80, stage.clientWidth - 48), ah = Math.max(80, stage.clientHeight - 48);
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const k = Math.min(aw / S.base.width, ah / S.base.height, 3);
+  const cssW = Math.max(1, Math.floor(S.base.width * k)), cssH = Math.max(1, Math.floor(S.base.height * k));
+  const pw = Math.min(S.base.width, Math.round(cssW * dpr)), ph = Math.max(1, Math.round(pw * S.base.height / S.base.width));
+  pv = { c: resample(S.base, pw, ph), w: pw, h: ph };
+  pcache.key = "";
+  view.width = pw; view.height = ph; view.style.width = cssW + "px"; view.style.height = cssH + "px";
+  wrap.style.width = cssW + "px"; wrap.style.height = cssH + "px";
+  thumbsDirty = true;
+}
+let raf = 0, comparing = false;
+function render() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); }
+function draw() {
+  if (!pv) return;
+  if (comparing) { vx.clearRect(0, 0, pv.w, pv.h); const o = S.orig, k = Math.min(pv.w / o.width, pv.h / o.height), w = o.width * k, h = o.height * k; vx.drawImage(o, (pv.w - w) / 2, (pv.h - h) / 2, w, h); return; }
+  const key = JSON.stringify([S.adj, S.filter, S.intensity, pv.w]);
+  if (pcache.key !== key || !pcache.c) pcache = { key, c: processed(pv.c, pv.w, pv.h) };
+  const frame = compose(pv.c, pv.w, pv.h, { preview: true, cache: pcache.c });
+  vx.clearRect(0, 0, pv.w, pv.h); vx.drawImage(frame, 0, 0);
+  if (tool === "text" && selId) {
+    const b = textBoxes.find(b => b.id === selId);
+    if (b) { vx.save(); vx.setLineDash([6, 4]); vx.lineWidth = Math.max(1.5, pv.w / 600); vx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--guide"); vx.strokeRect(b.x, b.y, b.w, b.h); vx.restore(); }
+  }
+}
+let resizeT; addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { fitPreview(); render(); if (tool === "crop") placeCrop(); }, 120); });
+
+/* ---------- Loading ---------- */
+const fileInput = $("#file"); let afterOpenTool = null;
+function openPicker(nextTool = null) { afterOpenTool = nextTool; fileInput.value = ""; fileInput.click(); }
+fileInput.addEventListener("change", () => fileInput.files[0] && loadFile(fileInput.files[0]));
+async function decode(file) {
+  try { return await createImageBitmap(file, { imageOrientation: "from-image" }); }
+  catch { return await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); }
+}
+async function loadFile(file) {
+  if (!file || !/^image\//.test(file.type)) return toast("That file isn’t a photo. Open a JPG, PNG, WebP or GIF.");
+  let img; try { img = await decode(file); } catch { return toast("This photo format can’t be opened here. Save it as JPG or PNG and try again."); }
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight, k = Math.min(1, MAX_DIM / Math.max(w, h));
+  const c = canvas(w * k, h * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  Object.assign(S, { base: c, orig: c, adj: freshAdj(), filter: "none", intensity: 100, texts: [], bg: null });
+  hist = []; fut = []; selId = null; syncHistory();
+  fileName = (file.name || "photo").replace(/\.[^.]+$/, "") || "photo";
+  $("#empty").hidden = true; wrap.hidden = false;
+  $$(".tool").forEach(b => (b.disabled = false)); $("#exportBtn").disabled = false; $("#compareBtn").disabled = false;
+  fitPreview(); syncPanels(); render();
+  selectTool(afterOpenTool || "adjust"); afterOpenTool = null;
+  if (k < 1) toast(`Large photo reduced to ${c.width} × ${c.height} px for smooth editing.`);
+}
+$("#openBtn").onclick = () => openPicker();
+$("#emptyOpen").onclick = () => openPicker();
+$("#emptyPassport").onclick = () => openPicker("passport");
+["dragenter", "dragover"].forEach(e => stage.addEventListener(e, ev => { ev.preventDefault(); stage.classList.add("drag"); }));
+["dragleave", "drop"].forEach(e => stage.addEventListener(e, ev => { ev.preventDefault(); stage.classList.remove("drag"); }));
+stage.addEventListener("drop", e => { const f = [...e.dataTransfer.files].find(f => f.type.startsWith("image/")); if (f) loadFile(f); });
+addEventListener("paste", e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/")); if (it) loadFile(it.getAsFile()); });
+
+/* ---------- Tools ---------- */
+const side = $("#side");
+function selectTool(name) {
+  if (tool === "crop" && name !== "crop") endCrop(false);
+  tool = name;
+  $$(".tool").forEach(b => b.setAttribute("aria-selected", b.dataset.tool === name));
+  $$(".pane").forEach(p => (p.hidden = p.dataset.pane !== name));
+  side.classList.toggle("closed", !name);
+  stage.classList.toggle("texting", name === "text");
+  if (name === "crop") startCrop();
+  if (name === "filters") buildThumbs();
+  if (name === "resize") syncResize();
+  if (name === "passport") syncPassport();
+  requestAnimationFrame(() => { fitPreview(); render(); if (tool === "crop") placeCrop(); });
+}
+$$(".tool").forEach(b => (b.onclick = () => selectTool(tool === b.dataset.tool && innerWidth <= 860 ? null : b.dataset.tool)));
+function syncPanels() { syncSliders(); syncFilterSel(); syncTextUI(); syncSwatches(); if (tool === "resize") syncResize(); }
+
+/* ---------- Crop ---------- */
+const cropEl = $("#crop"), guide = $("#guide");
+const ASPECTS = [["Free", null], ["Original", "orig"], ["Square", 1], ["4:5", 4 / 5], ["3:2", 3 / 2], ["4:3", 4 / 3], ["16:9", 16 / 9], ["9:16", 9 / 16]];
+let cr = { x: 0, y: 0, w: 1, h: 1 }, aspect = null, aspectKey = "Free", ppMode = null;
+$("#aspects").innerHTML = ASPECTS.map(([n]) => `<button class="chip" data-a="${n}" aria-pressed="${n === "Free"}">${n}</button>`).join("");
+$("#aspects").onclick = e => { const b = e.target.closest("[data-a]"); if (!b) return; aspectKey = b.dataset.a; const a = ASPECTS.find(x => x[0] === aspectKey)[1]; setAspect(a === "orig" ? S.base.width / S.base.height : a); $$("#aspects .chip").forEach(c => c.setAttribute("aria-pressed", c === b)); };
+function setAspect(a) {
+  aspect = a; cropEl.classList.toggle("locked", !!a);
+  if (a) { const W = S.base.width, H = S.base.height; let w = 1, h = W / (a * H); if (h > 1) { h = 1; w = a * H / W; } w *= .92; h *= .92; cr = { x: (1 - w) / 2, y: (1 - h) / 2, w, h }; }
+  else cr = { x: 0, y: 0, w: 1, h: 1 };
+  placeCrop();
+}
+function startCrop(pp = null) {
+  ppMode = pp; wrap.classList.add("cropping"); cropEl.hidden = false; cropEl.classList.toggle("pp", !!pp); guide.toggleAttribute("hidden", !pp);
+  $("#aspectGroup").hidden = !!pp;
+  $("#cropTitle").textContent = pp ? "Line up the face" : "Crop and rotate";
+  $("#cropHint").textContent = pp ? "Move and resize the frame so the top of the head and the chin sit on the two lines." : "Drag the corners to choose what to keep.";
+  $("#cropApply").textContent = pp ? "Use this framing" : "Apply crop";
+  if (pp) setAspect(pp.w / pp.h);
+  else { aspectKey = "Free"; $$("#aspects .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.a === "Free")); setAspect(null); }
+}
+function endCrop() { wrap.classList.remove("cropping"); cropEl.hidden = true; ppMode = null; }
+function placeCrop() {
+  if (cropEl.hidden) return;
+  Object.assign(cropEl.style, { left: cr.x * 100 + "%", top: cr.y * 100 + "%", width: cr.w * 100 + "%", height: cr.h * 100 + "%" });
+  $("#cropSize").textContent = `${Math.round(cr.w * S.base.width)} × ${Math.round(cr.h * S.base.height)}`;
+  if (ppMode) drawGuide();
+}
+function drawGuide() {
+  const r = cropEl.getBoundingClientRect(), W = r.width, H = r.height, g = ppMode;
+  const head = (g.headMin + g.headMax) / 2, top = g.top ?? .1, chin = top + head, cy = top + head * .52;
+  const ry = H * head / 2 * 1.0, rx = ry * .74;
+  const line = (y, label) => `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke-width="2" stroke-dasharray="6 5" style="stroke:var(--guide)"/><text x="${W - 6}" y="${y - 6}" fill="#fff" font-size="12" font-weight="700" text-anchor="end" style="paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:3px">${label}</text>`;
+  guide.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  guide.innerHTML = `<ellipse cx="${W / 2}" cy="${H * cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#fff" stroke-width="2" opacity=".9"/>
+    <line x1="${W / 2}" x2="${W / 2}" y1="0" y2="${H}" stroke="#fff" stroke-width="1" opacity=".35"/>
+    ${line(H * top, "Top of head")}${line(H * chin, "Chin")}`;
+}
+let drag = null;
+cropEl.addEventListener("pointerdown", e => {
+  e.preventDefault(); cropEl.setPointerCapture(e.pointerId);
+  drag = { h: e.target.dataset.h || "move", sx: e.clientX, sy: e.clientY, r: { ...cr }, rect: wrap.getBoundingClientRect() };
+});
+cropEl.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.sx) / drag.rect.width, dy = (e.clientY - drag.sy) / drag.rect.height, r = { ...drag.r }, min = .04;
+  const W = S.base.width, H = S.base.height, h = drag.h;
+  if (h === "move") { r.x = clamp(r.x + dx, 0, 1 - r.w); r.y = clamp(r.y + dy, 0, 1 - r.h); }
+  else if (aspect) {
+    const ax = h.includes("e") ? r.x : r.x + r.w, ay = h.includes("s") ? r.y : r.y + r.h;
+    let w = h.includes("e") ? r.w + dx : r.w - dx;
+    const maxW = Math.min(h.includes("e") ? 1 - ax : ax, (h.includes("s") ? 1 - ay : ay) * aspect * H / W);
+    w = clamp(w, min, maxW); const hh = w * W / (aspect * H);
+    r.w = w; r.h = hh; r.x = h.includes("e") ? ax : ax - w; r.y = h.includes("s") ? ay : ay - hh;
+  } else {
+    if (h.includes("e")) r.w = clamp(r.w + dx, min, 1 - r.x);
+    if (h.includes("s")) r.h = clamp(r.h + dy, min, 1 - r.y);
+    if (h.includes("w")) { const nx = clamp(r.x + dx, 0, r.x + r.w - min); r.w += r.x - nx; r.x = nx; }
+    if (h.includes("n")) { const ny = clamp(r.y + dy, 0, r.y + r.h - min); r.h += r.y - ny; r.y = ny; }
+  }
+  cr = r; placeCrop();
+});
+cropEl.addEventListener("pointerup", () => (drag = null));
+cropEl.addEventListener("pointercancel", () => (drag = null));
+cropEl.addEventListener("keydown", e => { const s = e.shiftKey ? .05 : .01, m = { ArrowLeft: [-s, 0], ArrowRight: [s, 0], ArrowUp: [0, -s], ArrowDown: [0, s] }[e.key]; if (m) { e.preventDefault(); cr.x = clamp(cr.x + m[0], 0, 1 - cr.w); cr.y = clamp(cr.y + m[1], 0, 1 - cr.h); placeCrop(); } });
+cropEl.tabIndex = 0;
+
+function applyCrop() {
+  const W = S.base.width, H = S.base.height, sx = Math.round(cr.x * W), sy = Math.round(cr.y * H), sw = Math.max(1, Math.round(cr.w * W)), sh = Math.max(1, Math.round(cr.h * H));
+  const wasPP = !!ppMode;
+  if (!(sx === 0 && sy === 0 && sw === W && sh === H)) {
+    commit();
+    const c = canvas(sw, sh); c.getContext("2d").drawImage(S.base, sx, sy, sw, sh, 0, 0, sw, sh);
+    S.texts.forEach(t => { t.x = (t.x - cr.x) / cr.w; t.y = (t.y - cr.y) / cr.h; t.size = t.size / cr.w; });
+    S.base = c; fitPreview(); render(); syncHistory();
+    toast(wasPP ? "Face framed" : "Cropped");
+  }
+  endCrop();
+  if (wasPP) { ppDone.add(2); selectTool("passport"); } else selectTool("adjust");
+}
+$("#cropApply").onclick = applyCrop;
+$("#cropCancel").onclick = () => { const wasPP = !!ppMode; endCrop(); selectTool(wasPP ? "passport" : "adjust"); };
+
+function transform(op) {
+  commit();
+  const W = S.base.width, H = S.base.height, rot = op.startsWith("rot"), c = rot ? canvas(H, W) : canvas(W, H), x = c.getContext("2d");
+  if (op === "rotr") { x.translate(H, 0); x.rotate(Math.PI / 2); }
+  if (op === "rotl") { x.translate(0, W); x.rotate(-Math.PI / 2); }
+  if (op === "fliph") { x.translate(W, 0); x.scale(-1, 1); }
+  if (op === "flipv") { x.translate(0, H); x.scale(1, -1); }
+  x.drawImage(S.base, 0, 0);
+  S.texts.forEach(t => {
+    if (op === "fliph") t.x = 1 - t.x; if (op === "flipv") t.y = 1 - t.y;
+    if (op === "rotr") [t.x, t.y] = [1 - t.y, t.x]; if (op === "rotl") [t.x, t.y] = [t.y, 1 - t.x];
+    if (rot) t.size = t.size * W / H;
+  });
+  S.base = c; fitPreview(); render(); syncHistory();
+  if (tool === "crop") { if (ppMode) setAspect(ppMode.w / ppMode.h); else { const a = ASPECTS.find(x => x[0] === aspectKey)[1]; setAspect(a === "orig" ? S.base.width / S.base.height : a); } }
+}
+$$("[data-op]").forEach(b => (b.onclick = () => transform(b.dataset.op)));
+
+/* ---------- Adjust ---------- */
+const SLIDERS = [["brightness", "Brightness", -100, 100], ["contrast", "Contrast", -100, 100], ["saturation", "Saturation", -100, 100], ["warmth", "Warmth", -100, 100], ["vignette", "Vignette", 0, 100]];
+$("#sliders").innerHTML = SLIDERS.map(([k, l, a, b]) => `<div class="slider"><label for="s_${k}">${l}</label><output id="o_${k}">0</output><input type="range" id="s_${k}" data-k="${k}" min="${a}" max="${b}" value="0"></div>`).join("");
+$$("#sliders input").forEach(i => {
+  i.addEventListener("input", () => { commitOnce(); S.adj[i.dataset.k] = +i.value; $("#o_" + i.dataset.k).textContent = i.value; thumbsDirty = true; render(); });
+  i.addEventListener("dblclick", () => { commit(); S.adj[i.dataset.k] = 0; syncSliders(); render(); });
+});
+function syncSliders() { SLIDERS.forEach(([k]) => { $("#s_" + k).value = S.adj[k]; $("#o_" + k).textContent = S.adj[k]; }); }
+$("#adjReset").onclick = () => { commit(); S.adj = freshAdj(); syncSliders(); render(); };
+
+/* ---------- Filters ---------- */
+let thumbsDirty = true;
+$("#filterGrid").innerHTML = FILTERS.map(([k, n]) => `<button class="fx" data-f="${k}" aria-pressed="false"><img alt=""><span>${n}</span></button>`).join("");
+function buildThumbs() {
+  if (!thumbsDirty || !pv) return; thumbsDirty = false;
+  const s = 120, k = s / Math.min(pv.w, pv.h), tw = Math.round(pv.w * k), th = Math.round(pv.h * k), src = resample(pv.c, tw, th);
+  const sq = canvas(s, s), sqx = sq.getContext("2d"); sqx.drawImage(src, (s - tw) / 2, (s - th) / 2);
+  FILTERS.forEach(([f]) => { const c = processed(sq, s, s, { ...S.adj, vignette: 0 }, f, 100); $(`.fx[data-f="${f}"] img`).src = c.toDataURL("image/jpeg", .8); });
+}
+$("#filterGrid").onclick = e => { const b = e.target.closest(".fx"); if (!b || b.dataset.f === S.filter) return; commit(); S.filter = b.dataset.f; if (S.intensity === 0) S.intensity = 100; syncFilterSel(); render(); };
+function syncFilterSel() { $$(".fx").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === S.filter)); $("#intensity").value = S.intensity; $("#intensityOut").textContent = S.intensity + "%"; $("#intensityWrap").hidden = S.filter === "none"; }
+$("#intensity").addEventListener("input", e => { commitOnce(); S.intensity = +e.target.value; $("#intensityOut").textContent = S.intensity + "%"; render(); });
+
+/* ---------- Text ---------- */
+$("#tFont").innerHTML = FONTS.map(f => `<option value="${f}" style="font-family:'${f}'">${f}</option>`).join("");
+let tid = 0;
+$("#addText").onclick = () => {
+  commit();
+  const t = { id: "t" + (++tid), text: "Your text", font: "Montserrat", size: 9, color: "#ffffff", align: "center", bold: true, italic: false, stroke: false, shadow: true, box: false, x: .5, y: .5 + (S.texts.length % 4) * .1 };
+  S.texts.push(t); selId = t.id; syncTextUI(); ensureFont(t); render();
+  setTimeout(() => { $("#tContent").focus(); $("#tContent").select(); }, 30);
+};
+const selT = () => S.texts.find(t => t.id === selId);
+function ensureFont(t) { if (document.fonts && document.fonts.load) document.fonts.load(fontStr(t, 40)).then(() => { pcache.key = pcache.key; render(); }).catch(() => {}); }
+function syncTextUI() {
+  $("#textList").innerHTML = S.texts.map(t => `<button class="tli" data-id="${t.id}" aria-pressed="${t.id === selId}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg><span style="font-family:'${t.font}'">${(t.text || " ").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</span></button>`).join("");
+  const t = selT(); $("#textEditor").hidden = !t; if (!t) return;
+  $("#tContent").value = t.text; $("#tFont").value = t.font; $("#tSize").value = t.size; $("#tSizeOut").textContent = t.size;
+  $("#tColor").value = t.color; $("#tAlign").value = t.align;
+  ["Bold", "Italic", "Stroke", "Shadow", "Box"].forEach(k => $("#t" + k).setAttribute("aria-pressed", !!t[k.toLowerCase()]));
+}
+$("#textList").onclick = e => { const b = e.target.closest(".tli"); if (b) { selId = b.dataset.id; syncTextUI(); render(); } };
+const tBind = (id, ev, fn, once = true) => $(id).addEventListener(ev, e => { const t = selT(); if (!t) return; once ? commitOnce() : commit(); fn(t, e); render(); });
+tBind("#tContent", "input", (t, e) => { t.text = e.target.value; const s = $(`.tli[data-id="${t.id}"] span`); if (s) s.textContent = t.text || " "; });
+$("#tContent").addEventListener("blur", () => (sliderSession = false));
+tBind("#tFont", "change", (t, e) => { t.font = e.target.value; ensureFont(t); syncTextUI(); }, false);
+tBind("#tSize", "input", (t, e) => { t.size = +e.target.value; $("#tSizeOut").textContent = t.size; });
+tBind("#tColor", "input", (t, e) => { t.color = e.target.value; });
+$("#tColor").addEventListener("change", () => (sliderSession = false));
+tBind("#tAlign", "change", (t, e) => { t.align = e.target.value; }, false);
+["Bold", "Italic", "Stroke", "Shadow", "Box"].forEach(k => tBind("#t" + k, "click", t => { const p = k.toLowerCase(); t[p] = !t[p]; $("#t" + k).setAttribute("aria-pressed", t[p]); if (p === "bold" || p === "italic") ensureFont(t); }, false));
+$("#tDelete").onclick = () => { if (!selT()) return; commit(); S.texts = S.texts.filter(t => t.id !== selId); selId = null; syncTextUI(); render(); };
+
+function canvasPoint(e) { const r = view.getBoundingClientRect(); return { x: (e.clientX - r.left) * view.width / r.width, y: (e.clientY - r.top) * view.height / r.height }; }
+const hitText = p => [...textBoxes].reverse().find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
+let tdrag = null;
+view.addEventListener("pointerdown", e => {
+  if (tool !== "text") return;
+  const p = canvasPoint(e), hit = hitText(p);
+  if (!hit) { if (selId) { selId = null; syncTextUI(); render(); } return; }
+  selId = hit.id; syncTextUI(); const t = selT(); commit();
+  view.setPointerCapture(e.pointerId); tdrag = { p, x: t.x, y: t.y }; render();
+});
+view.addEventListener("pointermove", e => {
+  if (tool !== "text") return;
+  const p = canvasPoint(e);
+  if (!tdrag) { stage.classList.toggle("over-text", !!hitText(p)); return; }
+  const t = selT(); t.x = clamp(tdrag.x + (p.x - tdrag.p.x) / view.width, 0, 1); t.y = clamp(tdrag.y + (p.y - tdrag.p.y) / view.height, 0, 1); render();
+});
+view.addEventListener("pointerup", () => (tdrag = null));
+
+/* ---------- Background ---------- */
+const BGS = [[null, "See-through", "none"], ["#FFFFFF", "White"], ["#F1F1EE", "Off-white"], ["#D8DCE0", "Light grey"], ["#CDE2F4", "Light blue"], ["#1B1F24", "Black"]];
+function swatchHTML(prefix) { return BGS.map(([c, n, cls]) => `<button class="sw ${cls || ""}" data-bg="${c || ""}" title="${n}" aria-label="${n}" aria-pressed="false" style="${c ? `background:${c}` : ""}"></button>`).join("") + (prefix === "bg" ? `<label class="sw custom" title="Pick a colour"><span class="sr">Pick a colour</span><input type="color" id="bgCustom" value="#FFD7A8"></label>` : ""); }
+$("#bgSwatches").innerHTML = swatchHTML("bg"); $("#ppSwatches").innerHTML = swatchHTML("pp");
+function setBg(c) { if ((S.bg || null) === (c || null)) return; commit(); S.bg = c || null; syncSwatches(); render(); }
+$$("#bgSwatches .sw[data-bg], #ppSwatches .sw[data-bg]").forEach(b => (b.onclick = () => setBg(b.dataset.bg)));
+$("#bgCustom").addEventListener("input", e => { commitOnce(); S.bg = e.target.value; syncSwatches(); render(); });
+function syncSwatches() { $$(".sw[data-bg]").forEach(b => b.setAttribute("aria-pressed", (b.dataset.bg || null) === (S.bg ? S.bg.toUpperCase() : null) || (!b.dataset.bg && !S.bg))); }
+
+let bgBusy = false, bgLib = null;
+async function removeBg() {
+  if (bgBusy) return false; bgBusy = true;
+  const btns = [$("#bgRemove"), $("#ppBg")]; btns.forEach(b => (b.disabled = true));
+  const busy = $("#bgBusy"), bar = $("#bgBar"), msg = $("#bgMsg"); busy.hidden = false; bar.style.width = "3%";
+  msg.textContent = "Getting the background remover ready…";
+  if (tool !== "background" && tool !== "passport") selectTool("background");
+  toast("Removing background… the first time takes a little longer.", 4000);
+  try {
+    bgLib = bgLib || await import(BG_LIB);
+    const blob = await new Promise(r => S.base.toBlob(r, "image/png"));
+    const out = await bgLib.removeBackground(blob, {
+      model: "isnet_fp16", output: { format: "image/png", quality: 1 },
+      progress: (key, cur, total) => {
+        const pct = total ? Math.round(cur / total * 100) : 0;
+        if (key.startsWith("fetch")) { msg.textContent = `Downloading the AI model (first time only) ${pct}%`; bar.style.width = Math.max(3, pct * .8) + "%"; }
+        else { msg.textContent = "Removing background…"; bar.style.width = "90%"; }
+      },
+    });
+    const bmp = await createImageBitmap(out), c = canvas(S.base.width, S.base.height);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    commit(); S.base = c; fitPreview(); render();
+    bar.style.width = "100%"; msg.textContent = "Background removed. Pick a fill colour or keep it see-through.";
+    toast("Background removed"); return true;
+  } catch (err) {
+    console.error(err);
+    msg.textContent = "Couldn’t remove the background. Check your internet connection (the AI model downloads once), then try again.";
+    bar.style.width = "0"; return false;
+  } finally { bgBusy = false; btns.forEach(b => (b.disabled = false)); setTimeout(() => { if (!bgBusy) busy.hidden = true; }, 6000); }
+}
+$("#bgRemove").onclick = removeBg;
+
+/* ---------- Resize ---------- */
+let lockRatio = true;
+function syncResize() { if (!S.base) return; $("#rW").value = S.base.width; $("#rH").value = S.base.height; $("#sizeNow").textContent = `Now ${S.base.width} × ${S.base.height} px`; }
+$("#rLock").onclick = () => { lockRatio = !lockRatio; $("#rLock").setAttribute("aria-pressed", lockRatio); };
+$("#rW").addEventListener("input", () => { if (lockRatio && +$("#rW").value) $("#rH").value = Math.round(+$("#rW").value * S.base.height / S.base.width); });
+$("#rH").addEventListener("input", () => { if (lockRatio && +$("#rH").value) $("#rW").value = Math.round(+$("#rH").value * S.base.width / S.base.height); });
+$("#rQuick").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const w = b.dataset.pct ? Math.round(S.base.width * b.dataset.pct / 100) : +b.dataset.w; $("#rW").value = w; $("#rH").value = Math.round(w * S.base.height / S.base.width); };
+$("#rApply").onclick = () => {
+  const w = Math.round(+$("#rW").value), h = Math.round(+$("#rH").value);
+  if (!(w >= 1 && h >= 1 && w <= 12000 && h <= 12000)) return toast("Enter a width and height between 1 and 12,000 pixels.");
+  if (w === S.base.width && h === S.base.height) return toast("That’s already the size.");
+  commit(); S.base = resample(S.base, w, h); fitPreview(); render(); syncResize(); syncHistory(); toast(`Resized to ${w} × ${h} px`);
+};
+
+/* ---------- Passport ---------- */
+const PP = [
+  { id: "us", name: "United States passport or visa", w: 50.8, h: 50.8, label: "2 × 2 in", headMin: .5, headMax: .69, top: .13, bgc: "#FFFFFF" },
+  { id: "uk", name: "United Kingdom passport", w: 35, h: 45, headMin: .64, headMax: .76, top: .1, bgc: "#F1F1EE" },
+  { id: "eu", name: "Schengen visa and most EU passports", w: 35, h: 45, headMin: .71, headMax: .8, top: .07, bgc: "#F1F1EE" },
+  { id: "sg", name: "Singapore passport or IC", w: 35, h: 45, headMin: .55, headMax: .8, top: .09, bgc: "#FFFFFF" },
+  { id: "my", name: "Malaysia passport", w: 35, h: 50, headMin: .55, headMax: .75, top: .1, bgc: "#FFFFFF" },
+  { id: "in", name: "India passport", w: 35, h: 45, headMin: .55, headMax: .8, top: .08, bgc: "#FFFFFF" },
+  { id: "au", name: "Australia passport", w: 35, h: 45, headMin: .71, headMax: .8, top: .07, bgc: "#FFFFFF" },
+  { id: "ca", name: "Canada passport", w: 50, h: 70, headMin: .44, headMax: .51, top: .16, bgc: "#FFFFFF" },
+  { id: "cn", name: "China visa", w: 33, h: 48, headMin: .58, headMax: .73, top: .07, bgc: "#FFFFFF" },
+  { id: "jp", name: "Japan passport", w: 35, h: 45, headMin: .71, headMax: .8, top: .07, bgc: "#FFFFFF" },
+  { id: "custom", name: "Custom size", w: 35, h: 45, headMin: .6, headMax: .75, top: .1, bgc: "#FFFFFF" },
+];
+const DPI = 300, mmPx = mm => Math.round(mm / 25.4 * DPI);
+const ppDone = new Set();
+$("#ppType").innerHTML = PP.map(p => `<option value="${p.id}">${p.name}${p.id !== "custom" ? ` (${p.label || p.w + " × " + p.h + " mm"})` : ""}</option>`).join("");
+const curPP = () => { const p = { ...PP.find(p => p.id === $("#ppType").value) }; if (p.id === "custom") { p.w = clamp(+$("#ppW").value || 35, 10, 200); p.h = clamp(+$("#ppH").value || 45, 10, 200); } return p; };
+const sheetDims = () => ({ "4x6": [1800, 1200], "5x7": [2100, 1500], a4: [3508, 2480] })[$("#ppSheet").value];
+function layout(pw, ph) {
+  const [SW, SH] = sheetDims(); let best = null;
+  for (const [m, gap] of [[24, 24], [12, 0], [0, 0]]) for (const [W, H] of [[SW, SH], [SH, SW]]) { const cols = Math.floor((W - 2 * m + gap) / (pw + gap)), rows = Math.floor((H - 2 * m + gap) / (ph + gap)); if (!best || cols * rows > best.n) best = { W, H, cols, rows, n: cols * rows, gap }; }
+  return best;
+}
+function syncPassport() {
+  const p = curPP(); $("#ppCustom").hidden = p.id !== "custom";
+  $("#ppInfo").textContent = `Saves at ${mmPx(p.w)} × ${mmPx(p.h)} px, 300 dpi.`;
+  const L = layout(mmPx(p.w), mmPx(p.h)); $("#ppSheetInfo").textContent = L.n ? `${L.n} photos per sheet. Print at 100% size, not “fit to page”.` : "This photo is too big for that paper.";
+  [2, 3].forEach(n => $("#ps" + n).classList.toggle("done", ppDone.has(n))); $("#ps1").classList.add("done");
+  syncSwatches();
+}
+["#ppType", "#ppW", "#ppH", "#ppSheet"].forEach(id => $(id).addEventListener("input", () => { if (id === "#ppType") ppDone.delete(2); syncPassport(); }));
+$("#ppFrame").onclick = () => { const p = curPP(); selectTool("crop"); startCrop(p); };
+$("#ppBg").onclick = async () => { const ok = await removeBg(); if (ok) { S.bg = curPP().bgc; syncSwatches(); render(); ppDone.add(3); syncPassport(); } };
+$$("#ppSwatches .sw").forEach(b => b.addEventListener("click", () => { ppDone.add(3); syncPassport(); }));
+function passportCanvas() {
+  const p = curPP(), W = mmPx(p.w), H = mmPx(p.h), src = S.base, a = W / H, sa = src.width / src.height;
+  let sw = src.width, sh = src.height; if (sa > a) sw = sh * a; else sh = sw / a;
+  const crop = canvas(sw, sh); crop.getContext("2d").drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, sw, sh);
+  const sized = resample(crop, W, H);
+  return compose(sized, W, H, { bg: S.bg || "#FFFFFF" });
+}
+function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+$("#ppSingle").onclick = () => { const c = passportCanvas(), p = curPP(); c.toBlob(b => { download(b, `${fileName}-passport-${p.label ? "2x2in" : p.w + "x" + p.h + "mm"}.jpg`); toast("Passport photo saved"); }, "image/jpeg", .95); };
+$("#ppPrint").onclick = () => {
+  const ph = passportCanvas(), L = layout(ph.width, ph.height); if (!L.n) return toast("Choose larger paper for this photo size.");
+  const sheet = canvas(L.W, L.H), x = sheet.getContext("2d"), gap = L.gap;
+  x.fillStyle = "#fff"; x.fillRect(0, 0, L.W, L.H);
+  const gw = L.cols * ph.width + (L.cols - 1) * gap, gh = L.rows * ph.height + (L.rows - 1) * gap, ox = (L.W - gw) / 2, oy = (L.H - gh) / 2;
+  x.strokeStyle = "#B8BEC4"; x.lineWidth = 2;
+  for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) { const px = ox + c * (ph.width + gap), py = oy + r * (ph.height + gap); x.drawImage(ph, px, py); x.strokeRect(px - 1, py - 1, ph.width + 2, ph.height + 2); }
+  sheet.toBlob(b => { download(b, `${fileName}-passport-sheet-${$("#ppSheet").value}.jpg`); toast(`Print sheet saved with ${L.n} photos`); }, "image/jpeg", .95);
+};
+
+/* ---------- Export ---------- */
+const dlg = $("#exportDlg");
+const FORMATS = [["image/png", "PNG", "png"], ["image/jpeg", "JPG", "jpg"], ["image/webp", "WebP", "webp"]];
+(() => { const t = canvas(2, 2); if (t.toDataURL("image/avif").startsWith("data:image/avif")) FORMATS.push(["image/avif", "AVIF", "avif"]); })();
+let exFmt = "image/png", exBlob = null, exTimer;
+$("#exFormats").innerHTML = FORMATS.map(([m, n]) => `<button type="button" class="chip" data-m="${m}" aria-pressed="${m === exFmt}">${n}</button>`).join("");
+$("#exFormats").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; exFmt = b.dataset.m; $$("#exFormats .chip").forEach(c => c.setAttribute("aria-pressed", c === b)); syncExport(); };
+["#exQuality", "#exScale", "#exLimit"].forEach(id => $(id).addEventListener("input", syncExport));
+function openExport() {
+  if (!S.base) return; if (tool === "crop") applyCrop();
+  $("#exName").value = fileName + "-edited";
+  if (S.bg === null && hasAlpha(S.base)) { exFmt = "image/png"; } else if (exFmt === "image/png" && S.base.width * S.base.height > 2e6) exFmt = "image/jpeg";
+  $$("#exFormats .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.m === exFmt));
+  $("#exShare").hidden = !(navigator.canShare && navigator.canShare({ files: [new File([""], "a.png", { type: "image/png" })] }));
+  dlg.showModal(); syncExport();
+}
+function exportCanvas() {
+  const k = +$("#exScale").value, w = Math.round(S.base.width * k), h = Math.round(S.base.height * k);
+  const src = k === 1 ? S.base : resample(S.base, w, h);
+  const bg = S.bg || (exFmt === "image/jpeg" ? "#FFFFFF" : null);
+  return compose(src, w, h, { bg });
+}
+const toBlob = (c, type, q) => new Promise(r => c.toBlob(r, type, q));
+async function makeBlob() {
+  let c = exportCanvas(); const lossy = exFmt !== "image/png", limit = +$("#exLimit").value * 1024;
+  let q = +$("#exQuality").value / 100, b = await toBlob(c, exFmt, lossy ? q : undefined);
+  if (limit && b.size > limit) {
+    if (lossy) { let lo = .3, hi = q, best = null; for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2, t = await toBlob(c, exFmt, m); if (t.size <= limit) { best = t; lo = m; } else hi = m; } if (best) return { b: best, c, note: "Quality lowered to fit the size limit." }; }
+    for (let i = 0; i < 8 && b.size > limit; i++) { c = resample(c, c.width * .85, c.height * .85); b = await toBlob(c, exFmt, lossy ? .7 : undefined); }
+    return { b, c, note: b.size <= limit ? "Image made smaller to fit the size limit." : "Couldn’t reach that size limit. Try JPG." };
+  }
+  return { b, c };
+}
+function syncExport() {
+  const lossy = exFmt !== "image/png"; $("#exQualityWrap").hidden = !lossy; $("#exQualityOut").textContent = $("#exQuality").value + "%";
+  $("#exAlphaNote").hidden = !(exFmt === "image/jpeg" && !S.bg && hasAlpha(S.base));
+  $("#exSize").textContent = "…"; clearTimeout(exTimer);
+  exTimer = setTimeout(async () => { const { b, c, note } = await makeBlob(); exBlob = b; $("#exDims").textContent = `${c.width} × ${c.height} px`; $("#exSize").textContent = kb(b.size); if (note) toast(note); }, 250);
+}
+const extOf = () => FORMATS.find(f => f[0] === exFmt)[2];
+$("#exSave").onclick = async () => { const { b } = await makeBlob(); download(b, `${($("#exName").value || "photo").replace(/[\\/:*?"<>|]+/g, "-")}.${extOf()}`); dlg.close(); toast("Saved to your downloads"); };
+$("#exCopy").onclick = async () => {
+  try { const c = exportCanvas(), b = await toBlob(c, "image/png"); await navigator.clipboard.write([new ClipboardItem({ "image/png": b })]); toast("Copied. Paste it anywhere."); }
+  catch { toast("This browser won’t copy images. Use Download instead."); }
+};
+$("#exShare").onclick = async () => { const { b } = await makeBlob(); try { await navigator.share({ files: [new File([b], `${$("#exName").value || "photo"}.${extOf()}`, { type: exFmt })] }); } catch {} };
+$("#exportBtn").onclick = openExport;
+
+/* ---------- Header actions ---------- */
+$("#undoBtn").onclick = undo; $("#redoBtn").onclick = redo;
+$("#resetBtn").onclick = () => { if (!hist.length) return; if (!confirm("Undo every change and go back to the original photo?")) return; commit(); Object.assign(S, { base: S.orig, adj: freshAdj(), filter: "none", intensity: 100, texts: [], bg: null }); selId = null; ppDone.clear(); fitPreview(); syncPanels(); render(); toast("Back to the original. Undo brings your edits back."); };
+const cmp = $("#compareBtn");
+const cmpOn = e => { if (!S.base) return; e.preventDefault(); comparing = true; draw(); };
+const cmpOff = () => { if (comparing) { comparing = false; draw(); } };
+cmp.addEventListener("pointerdown", cmpOn); ["pointerup", "pointerleave", "pointercancel"].forEach(ev => cmp.addEventListener(ev, cmpOff));
+cmp.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") cmpOn(e); }); cmp.addEventListener("keyup", cmpOff);
+
+addEventListener("keydown", e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (mod && e.key.toLowerCase() === "y" && !typing) { e.preventDefault(); redo(); }
+  else if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); openExport(); }
+  else if (!typing && !mod && e.key.toLowerCase() === "o") openPicker();
+  else if (!typing && (e.key === "Delete" || e.key === "Backspace") && tool === "text" && selId) { e.preventDefault(); $("#tDelete").click(); }
+  else if (e.key === "Enter" && tool === "crop" && !typing && document.activeElement === cropEl) applyCrop();
+});
+})();
+</script>
+</body>
+</html>
