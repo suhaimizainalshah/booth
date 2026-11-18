@@ -534,7 +534,7 @@ const COUNTER = { on: true, ns: "booth-photo-editor", keys: { visits: "Photo: vi
   d3_visits: "3D: visits", d3_shapes: "3D: shapes added", d3_imports: "3D: models opened", d3_exports: "3D: exports" } };
 const canCount = COUNTER.on && !navigator.globalPrivacyControl && navigator.doNotTrack !== "1" && /^https?:/.test(location.protocol);
 function count(key) { if (!canCount) return; try { fetch(`https://abacus.jasoncameron.dev/hit/${COUNTER.ns}/${key}`, { keepalive: true }).catch(() => {}); } catch {} }
-try { if (!sessionStorage.getItem("booth-visit")) { sessionStorage.setItem("booth-visit", "1"); count("visits"); } } catch {}
+try { if (location.hash !== "#stats" && !sessionStorage.getItem("booth-visit")) { sessionStorage.setItem("booth-visit", "1"); count("visits"); } } catch {}
 async function showStats() {
   const d = document.getElementById("statsDlg"), list = document.getElementById("statsList"); d.showModal();
   if (!/^https?:/.test(location.protocol)) { list.textContent = "Counts work once the site is online, for example on GitHub Pages."; return; }
