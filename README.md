@@ -50,6 +50,12 @@ Switch between them with the tabs at the top of every page.
 - Titles with five fonts and fade, pop, slide-up and typewriter animations.
 - Export as video (MP4 where supported, otherwise WebM), animated GIF, audio only (M4A or WebM), or a PNG frame.
 
+**Audio (`audio.html`):** open any audio file, or a video file to extract its sound; record from the microphone; zoomable waveform with drag-to-select; keep only the selection, delete, silence, insert silence, add a file at the end or mix one in at the playhead; fade in and out, normalise, reverse, reduce background noise, clearer speech, remove vocals, isolate voice; volume, speed, bass/middle/treble, echo, reverb and compression; loop playback of a selection; undo and redo; export MP3 (128, 192 or 320 kbps) or WAV, or send the result straight to the Video editor.
+
+**Find music (Video and Audio studios):** links to official trend charts (TikTok Creative Center, YouTube Charts, Shazam, Spotify Charts) and free music libraries (YouTube Audio Library, Pixabay Music, Free Music Archive, Freesound, Incompetech), plus a credit-line maker. In the Video editor each audio track has a credit field, a button to show the credit at the end of the video, and "Copy music credits" in Export.
+
+About trending sounds and copyright: naming a song in a caption or a file's details is good practice but does not give permission to use it. Trending sounds on TikTok, Instagram and YouTube Shorts are licensed for use inside those apps, so the safe route is to export from Booth without that song and add it in the app when posting. Booth does not download audio from YouTube or other sites: that breaks their terms of service and usually copyright. For your own YouTube uploads, download the file from YouTube Studio and open it in Booth.
+
 **360° (`360.html`):** opens stitched 360 photos and videos and stitches raw dual-lens files (for example Samsung Gear 360). Level the horizon, set the starting direction, adjust brightness, contrast, saturation and warmth, add a vignette to views, and hide the tripod with a colour patch or your logo. Views: 360, little planet, tunnel and flat. Save 360 photos with Facebook/Google metadata, pictures of the current view, spin-around and spinning-planet videos from photos, 360 videos and flat videos of one view.
 
 **3D (`3d.html`):** cubes, spheres, cylinders, cones, rings, panels and 3D text; open GLB, glTF, OBJ, STL and PLY; move, rotate and resize with handles, exact numbers or exact sizes in millimetres; snap; mirror; make copies in a row or a circle; Shift-click several objects and group them; colours, finishes, pictures on surfaces and faceted shading; realistic reflections; undo and redo; export GLB, STL (3D printing), OBJ, USDZ (AR on iPhone and iPad), a PNG picture or a turntable video.
@@ -60,7 +66,7 @@ Switch between them with the tabs at the top of every page.
 - iPhone HEVC videos may not play in Chrome on Windows; export them as H.264 MP4 first.
 - 3D text supports English letters, numbers and common symbols.
 
-3D and 360 use three.js r169 (MIT), included in `vendor/three/`.
+3D and 360 use three.js r169 (MIT), included in `vendor/three/`. MP3 export uses lamejs 1.2.1 (LGPL-3.0), included in `vendor/lamejs/`.
 
 ## Updating your GitHub repo
-Upload everything in this folder, keeping the folder structure: `index.html`, `video.html`, `360.html`, `3d.html`, `README.md`, the `assets` folder and the `vendor` folder. The new studios must be opened from your GitHub Pages address (or a local server), not by double-clicking, because browsers block their modules on `file://` pages.
+Upload everything in this folder, keeping the folder structure: `index.html`, `video.html`, `audio.html`, `360.html`, `3d.html`, `README.md`, the `assets` folder and the `vendor` folder. The new studios must be opened from your GitHub Pages address (or a local server), not by double-clicking, because browsers block their modules on `file://` pages.
