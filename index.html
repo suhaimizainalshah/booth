@@ -491,7 +491,7 @@ a.brand:hover{background:var(--soft)}
   <div class="dlg">
     <header><h2 id="statsTitle">Usage counts</h2><button class="ibtn" id="statsClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
     <p class="note">Anonymous totals since you set up the counter. Only you know this page exists.</p>
-    <div class="stats" id="statsList">Loading…</div>
+    <div class="stats" id="statsList" style="max-height:60vh;overflow:auto">Loading…</div>
   </div>
 </dialog>
 
@@ -527,7 +527,11 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const MAX_DIM = 4096, HIST_MAX = 20;
 
 /* ---------- Anonymous counters (no cookies, no personal data) ---------- */
-const COUNTER = { on: true, ns: "booth-photo-editor", keys: { visits: "Visits", opens: "Photos opened", saves: "Images saved", passport: "Passport photos saved", sheets: "Print sheets saved", bgremove: "Backgrounds removed", batch: "Batch downloads" } };
+const COUNTER = { on: true, ns: "booth-photo-editor", keys: { visits: "Photo: visits", opens: "Photo: photos opened", saves: "Photo: images saved", passport: "Photo: passport photos saved", sheets: "Photo: print sheets saved", bgremove: "Photo: backgrounds removed", batch: "Many photos: batch downloads",
+  video_visits: "Video: visits", video_adds: "Video: files added", video_exports: "Video: videos exported", video_gif_exports: "Video: GIFs exported", video_audio_exports: "Video: audio exported",
+  audio_visits: "Audio: visits", audio_opens: "Audio: files opened", audio_edits: "Audio: edits applied", audio_exports: "Audio: files exported",
+  p360_visits: "360°: visits", p360_opens: "360°: files opened", p360_saves: "360°: photos saved", p360_video_saves: "360°: videos saved", p360_spin: "360°: spin videos",
+  d3_visits: "3D: visits", d3_shapes: "3D: shapes added", d3_imports: "3D: models opened", d3_exports: "3D: exports" } };
 const canCount = COUNTER.on && !navigator.globalPrivacyControl && navigator.doNotTrack !== "1" && /^https?:/.test(location.protocol);
 function count(key) { if (!canCount) return; try { fetch(`https://abacus.jasoncameron.dev/hit/${COUNTER.ns}/${key}`, { keepalive: true }).catch(() => {}); } catch {} }
 try { if (!sessionStorage.getItem("booth-visit")) { sessionStorage.setItem("booth-visit", "1"); count("visits"); } } catch {}
