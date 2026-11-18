@@ -2,14 +2,6 @@
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
-## Put it online with GitHub Pages (5 minutes)
-1. On github.com click **New repository**, name it `booth`, choose **Public**, then **Create repository**.
-2. Click **uploading an existing file**, drag in `index.html` (and this README), then **Commit changes**.
-3. Go to **Settings → Pages**. Under *Build and deployment* choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
-4. After about a minute your editor is live at `https://<your-username>.github.io/booth/`. Share that link with friends and family.
-
-You can also just double-click `index.html` to use it on your own computer.
-
 ## What it does
 - **Open** by button, drag and drop, or paste (Ctrl+V).
 - **Crop** freely or to Square, 4:5, 3:2, 4:3, 16:9, 9:16 or the original shape.
