@@ -1,4 +1,4 @@
-# Booth: free photo editor and passport photo maker
+# Booth: free photo, video and audio editor plus passport photo maker with 3D and 360 media capabilities.
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
