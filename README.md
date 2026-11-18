@@ -2,6 +2,14 @@
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
+## Put it online with GitHub Pages (5 minutes)
+1. On github.com click **New repository**, name it `booth`, choose **Public**, then **Create repository**.
+2. Click **uploading an existing file**, drag in `index.html` (and this README), then **Commit changes**.
+3. Go to **Settings → Pages**. Under *Build and deployment* choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
+4. After about a minute your editor is live at `https://<your-username>.github.io/booth/`. Share that link with friends and family.
+
+You can also just double-click `index.html` to use it on your own computer.
+
 ## What it does
 - **Open** by button, drag and drop, or paste (Ctrl+V).
 - **Crop** freely or to Square, 4:5, 3:2, 4:3, 16:9, 9:16 or the original shape.
@@ -31,11 +39,26 @@ Click the Booth logo at any time to go back to the start.
 ## More studios
 Switch between them with the tabs at the top of every page.
 
-**Video (`video.html`):** add videos, photos and music; trim by dragging the ends of a clip; split at the playhead; change speed from 0.25× to 4×; turn photos into a slideshow with a slow zoom; add titles in five styles; fade between clips; choose 16:9, 9:16, square or 4:5 at up to 1080p. Export plays your video through once while it records, then saves an MP4 (or WebM in browsers that can't record MP4).
+**Photo (`index.html`)** also has: Auto enhance; exposure, highlights, shadows, vibrance and tint; sharpen, soften and film grain; borders in any colour and rounded corners.
 
-**360° (`360.html`):** open stitched 360 photos and videos (2:1 equirectangular) from Samsung Gear 360, Insta360, Ricoh Theta, GoPro MAX and phone panoramas. Raw dual-lens files, such as Samsung Gear 360 originals, are detected and stitched, with sliders to line up the seam. Level the horizon, set the starting direction, adjust colour, and switch between the 360 view, a little planet and a flat view. Save 360 photos with the metadata Facebook and Google Photos look for, a picture of what you see, a 360 video, or a flat video of one view. Insta360 .insv and GoPro .360 files must be exported from the camera's app first.
+**Video (`video.html`):**
+- Timeline with trim (drag clip ends), split (S), duplicate, reorder by dragging, undo and redo.
+- Speed from 0.25× to 4×; photo slideshows with an optional slow zoom; freeze frame; snapshot of any frame.
+- Transitions between clips: crossfade, fade through black or white, slide, slide up, wipe, zoom and circle, with adjustable length, on one clip or every clip.
+- Per-clip colour looks (B&W, sepia, vintage, warm, cool, vivid, noir) plus brightness, contrast and saturation; zoom, reposition, rotate and mirror to reframe (for example landscape to vertical).
+- Sound: per-clip volume with fade in and out; detach a clip's sound to the audio lane; several audio tracks (music, sound effects, detached sound); record a voiceover from the microphone; sound tools: remove vocals (karaoke), isolate voice, clearer speech, remove low rumble, reduce hiss, boost bass.
+- Titles with five fonts and fade, pop, slide-up and typewriter animations.
+- Export as video (MP4 where supported, otherwise WebM), animated GIF, audio only (M4A or WebM), or a PNG frame.
 
-**3D (`3d.html`):** add cubes, spheres, cylinders, cones, rings and panels; open GLB, glTF, OBJ, STL and PLY models; move, rotate and resize with handles or exact numbers (in millimetres); snap to the grid; change colour and finish; undo and redo; export GLB (web, AR, Booth's shop), STL (3D printing), OBJ or a PNG picture.
+**360° (`360.html`):** opens stitched 360 photos and videos and stitches raw dual-lens files (for example Samsung Gear 360). Level the horizon, set the starting direction, adjust brightness, contrast, saturation and warmth, add a vignette to views, and hide the tripod with a colour patch or your logo. Views: 360, little planet, tunnel and flat. Save 360 photos with Facebook/Google metadata, pictures of the current view, spin-around and spinning-planet videos from photos, 360 videos and flat videos of one view.
+
+**3D (`3d.html`):** cubes, spheres, cylinders, cones, rings, panels and 3D text; open GLB, glTF, OBJ, STL and PLY; move, rotate and resize with handles, exact numbers or exact sizes in millimetres; snap; mirror; make copies in a row or a circle; Shift-click several objects and group them; colours, finishes, pictures on surfaces and faceted shading; realistic reflections; undo and redo; export GLB, STL (3D printing), OBJ, USDZ (AR on iPhone and iPad), a PNG picture or a turntable video.
+
+### Honest limits
+- Exports that involve video or animation record in real time: a 2-minute video takes about 2 minutes.
+- "Remove vocals" cancels sound panned to the centre of a stereo mix. It works on many songs but isn't the AI stem separation paid tools use, which needs downloads of several hundred megabytes and powerful hardware.
+- iPhone HEVC videos may not play in Chrome on Windows; export them as H.264 MP4 first.
+- 3D text supports English letters, numbers and common symbols.
 
 3D and 360 use three.js r169 (MIT), included in `vendor/three/`.
 

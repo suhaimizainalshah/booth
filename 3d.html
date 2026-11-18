@@ -64,6 +64,7 @@
           <button class="tb" data-add="cone" title="Add a cone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 5 18M12 3l7 15"/><ellipse cx="12" cy="18" rx="7" ry="2.6"/></svg>Cone</button>
           <button class="tb" data-add="torus" title="Add a ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="9" ry="5.5"/><ellipse cx="12" cy="11.5" rx="3.6" ry="1.6"/></svg>Ring</button>
           <button class="tb" data-add="plane" title="Add a flat panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 15l7-6h11l-7 6z"/></svg>Panel</button>
+          <button class="tb" data-addtext title="Add 3D text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
         </div>
         <div class="tg" role="radiogroup" aria-label="Transform">
           <button class="tb" data-mode="translate" aria-pressed="true" title="Move (W)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>Move</button>
@@ -75,6 +76,7 @@
           <button class="tb" id="dupBtn" disabled title="Duplicate (Ctrl+D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy</button>
           <button class="tb" id="dropBtn" disabled title="Put on the ground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="3" width="8" height="8" rx="1"/><path d="M12 13v5M9 16l3 3 3-3M3 21h18"/></svg>Drop</button>
           <button class="tb" id="focusBtn" title="Frame the view (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="3"/></svg>Frame</button>
+          <button class="tb" id="groupBtn" disabled title="Group (Ctrl+G). Shift-click to pick several objects."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M11 7h4a2 2 0 0 1 2 2v4" stroke-dasharray="2 2"/></svg><span id="groupLbl">Group</span></button>
           <button class="tb" id="delBtn" disabled title="Delete (Delete)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>Delete</button>
         </div>
       </div>
@@ -89,12 +91,15 @@
   </div>
 </div>
 <input type="file" id="fileIn" accept=".glb,.gltf,.obj,.stl,.ply" multiple hidden>
+<input type="file" id="texIn" accept="image/*" hidden>
 <dialog id="exportDlg" aria-labelledby="exTitle"><div class="dlg">
   <h2 id="exTitle">Export</h2>
   <div class="group">
     <button class="btn block" data-ex="glb">GLB: for the web, AR, Blender and Booth’s shop</button>
     <button class="btn block" data-ex="stl">STL: for 3D printing</button>
     <button class="btn block" data-ex="obj">OBJ: for most 3D apps</button>
+    <button class="btn block" data-ex="usdz">USDZ: view in AR on iPhone and iPad</button>
+    <button class="btn block" data-ex="spin">Turntable video of the model</button>
     <button class="btn block" data-ex="png">Picture of this view (PNG)</button>
   </div>
   <div class="field"><label for="exOnly">What to export</label><select id="exOnly"><option value="all">Everything in the scene</option><option value="sel">Only the selected object</option></select></div>
@@ -115,8 +120,13 @@ import { PLYLoader } from "three/addons/loaders/PLYLoader.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+import { USDZExporter } from "three/addons/exporters/USDZExporter.js";
+import { FontLoader } from "three/addons/loaders/FontLoader.js";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function toast(m, ms = 2800) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), ms); }
 const NS = "booth-photo-editor", canCount = !navigator.globalPrivacyControl && navigator.doNotTrack !== "1" && /^https?:/.test(location.protocol);
@@ -132,7 +142,8 @@ const S = { bg: dark ? "#1e2227" : "#eef1f4", grid: true, light: "studio" };
 scene.background = new THREE.Color(S.bg);
 const camera = new THREE.PerspectiveCamera(45, 1, .5, 20000); camera.position.set(90, 70, 110);
 const orbit = new OrbitControls(camera, cvs); orbit.enableDamping = true; orbit.target.set(0, 10, 0);
-const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.6); scene.add(hemi);
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .6;
+const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.1); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(80, 140, 60); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -200, right: 200, top: 200, bottom: -200, near: 1, far: 600 }); scene.add(sun);
 const grid = new THREE.GridHelper(400, 40, dark ? 0x5a6470 : 0x9aa4ae, dark ? 0x353b42 : 0xd3d8dd); scene.add(grid);
@@ -143,7 +154,8 @@ const box = new THREE.BoxHelper(undefined, 0xe0412b); box.visible = false; scene
 tc.addEventListener("dragging-changed", e => (orbit.enabled = !e.value));
 function resize() { const w = cvs.clientWidth, h = cvs.clientHeight; renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener("resize", resize); new ResizeObserver(resize).observe(cvs);
-renderer.setAnimationLoop(() => { orbit.update(); if (sel) box.setFromObject(sel); renderer.render(scene, camera); });
+let spin = null;
+renderer.setAnimationLoop(() => { if (spin) spin(); else orbit.update(); if (sel) box.setFromObject(sel); extraBoxes.forEach((b, o) => b.setFromObject(o)); renderer.render(scene, camera); });
 
 /* ---------- History ---------- */
 let hist = [], fut = [];
@@ -159,6 +171,11 @@ function apply(op, dir) {
   if (op.t === "tf") setTf(op.o, fw ? op.after : op.before);
   if (op.t === "mat") setMat(op.o, fw ? op.after : op.before);
   if (op.t === "name") op.o.name = fw ? op.after : op.before;
+  if (op.t === "geo") { op.o.geometry = fw ? op.after.g : op.before.g; Object.assign(op.o.userData, fw ? op.after.u : op.before.u); }
+  if (op.t === "group") { if (fw) { world.add(op.g); op.items.forEach(o => op.g.attach(o)); } else { op.items.forEach(o => world.attach(o)); world.remove(op.g); } select(null); }
+  if (op.t === "ungroup") { if (fw) { op.items.forEach(o => world.attach(o)); world.remove(op.g); } else { world.add(op.g); op.items.forEach(o => op.g.attach(o)); } select(null); }
+  if (op.t === "tex") { eachMat(op.o, m => { m.map = fw ? op.after : op.before; m.needsUpdate = true; }); }
+  if (op.t === "multi") (fw ? op.ops : [...op.ops].reverse()).forEach(o2 => apply(o2, dir));
 }
 function undo() { const op = hist.pop(); if (!op) return; apply(op, -1); fut.push(op); syncHist(); refresh(); }
 function redo() { const op = fut.pop(); if (!op) return; apply(op, 1); hist.push(op); syncHist(); refresh(); }
@@ -192,16 +209,23 @@ function dropToGround(o) { o.updateMatrixWorld(true); const b = new THREE.Box3()
 $$("[data-add]").forEach(b => (b.onclick = () => addShape(b.dataset.add)));
 
 /* ---------- Selection ---------- */
-let sel = null;
+let sel = null; const multi = new Set(); const extraBoxes = new Map();
 function topOf(obj) { while (obj && obj.parent !== world) obj = obj.parent; return obj; }
-function select(o) { sel = o; if (o) { tc.attach(o); box.setFromObject(o); box.visible = true; } else { tc.detach(); box.visible = false; } refresh(); }
+function select(o, add = false) {
+  if (add && o) { if (multi.has(o) && multi.size > 1) { multi.delete(o); o = [...multi].pop(); } else multi.add(o); }
+  else { multi.clear(); if (o) multi.add(o); }
+  sel = o; if (o) { tc.attach(o); box.setFromObject(o); box.visible = true; } else { tc.detach(); box.visible = false; }
+  extraBoxes.forEach(b => scene.remove(b)); extraBoxes.clear();
+  multi.forEach(m => { if (m !== sel) { const b = new THREE.BoxHelper(m, 0xf6ad55); scene.add(b); extraBoxes.set(m, b); } });
+  refresh();
+}
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
 cvs.addEventListener("pointerdown", e => (down = { x: e.clientX, y: e.clientY }));
 cvs.addEventListener("pointerup", e => {
   if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4 || tc.dragging || tc.axis) return (down = null);
   const r = cvs.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ptr, camera); const hit = ray.intersectObjects(world.children, true).find(h => h.object.visible);
-  select(hit ? topOf(hit.object) : null); down = null;
+  select(hit ? topOf(hit.object) : null, e.shiftKey && !!hit); down = null;
 });
 $$("[data-mode]").forEach(b => (b.onclick = () => setMode(b.dataset.mode)));
 function setMode(m) { tc.setMode(m); $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === m)); }
@@ -219,6 +243,54 @@ function frame(o = sel) {
   const dir = camera.position.clone().sub(orbit.target).normalize(); orbit.target.copy(c); camera.position.copy(c).add(dir.multiplyScalar(size * 1.4 + 20));
 }
 $("#dupBtn").onclick = duplicate; $("#delBtn").onclick = remove; $("#dropBtn").onclick = drop; $("#focusBtn").onclick = () => frame();
+
+/* ---------- 3D text ---------- */
+let font = null;
+async function getFont() { if (!font) font = await new FontLoader().loadAsync("./vendor/three/fonts/helvetiker_bold.typeface.json"); return font; }
+function textGeo(f, u) { const g = new TextGeometry(u.text || " ", { font: f, size: u.tsize, depth: u.depth, curveSegments: 8, bevelEnabled: u.depth > 1.5, bevelThickness: Math.min(.8, u.depth * .2), bevelSize: Math.min(.5, u.tsize * .03), bevelSegments: 2 }); g.center(); return g; }
+async function addText() {
+  const f = await getFont(), u = { kind: "text", text: "Booth", tsize: 14, depth: 4 };
+  const m = new THREE.Mesh(textGeo(f, u), newMaterial(PALETTE[ci++ % PALETTE.length])); m.name = uniqueName("Text"); Object.assign(m.userData, u);
+  prep(m); world.add(m); dropToGround(m); spread(m); push({ t: "add", o: m }); select(m); count("d3_shapes");
+}
+$$("[data-addtext]").forEach(b => (b.onclick = addText));
+async function updateText(patch) {
+  if (!sel || sel.userData.kind !== "text") return; const f = await getFont(), before = { g: sel.geometry, u: { text: sel.userData.text, tsize: sel.userData.tsize, depth: sel.userData.depth } };
+  const u = { ...before.u, ...patch }; const g = textGeo(f, u); sel.geometry = g; Object.assign(sel.userData, u); push({ t: "geo", o: sel, before, after: { g, u } }); renderPane();
+}
+/* ---------- Group, mirror, array, size, texture ---------- */
+function groupToggle() {
+  if (multi.size >= 2) {
+    const items = [...multi], g = new THREE.Group(); g.name = uniqueName("Group"); g.userData.kind = "group";
+    const c = new THREE.Box3(); items.forEach(o => c.expandByObject(o)); const ctr = c.getCenter(new THREE.Vector3()); g.position.set(ctr.x, c.min.y, ctr.z);
+    world.add(g); items.forEach(o => g.attach(o)); push({ t: "group", g, items }); select(g); toast(`${items.length} objects grouped`);
+  } else if (sel && sel.userData.kind === "group") {
+    const g = sel, items = [...g.children]; items.forEach(o => world.attach(o)); world.remove(g); push({ t: "ungroup", g, items }); select(null); toast("Ungrouped");
+  }
+}
+$("#groupBtn").onclick = groupToggle;
+function mirror(axis) { if (!sel) return; const b = tf(sel); sel.scale.setComponent(axis, -sel.scale.getComponent(axis)); push({ t: "tf", o: sel, before: b, after: tf(sel) }); renderPane(); }
+function makeArray(n, mode, gap) {
+  if (!sel || n < 2) return; const src = sel, ops = [], items = [src], bb = new THREE.Box3().setFromObject(src), w = bb.getSize(new THREE.Vector3()).x;
+  for (let i = 1; i < n; i++) {
+    const c = src.clone(true); c.traverse(x => { if (x.isMesh) x.material = Array.isArray(x.material) ? x.material.map(m => m.clone()) : x.material.clone(); });
+    if (mode === "line") c.position.x += i * (w + gap);
+    else { const a = (i / n) * Math.PI * 2, r = Math.max(gap, w); c.position.x = src.position.x + Math.sin(a) * r; c.position.z = src.position.z + (Math.cos(a) - 1) * r; c.rotation.y = src.rotation.y + a; }
+    c.name = uniqueName(src.name.replace(/ \d+$/, "")); world.add(c); ops.push({ t: "add", o: c }); items.push(c);
+  }
+  push({ t: "multi", ops }); select(src); items.slice(1).forEach(o => select(o, true));
+  toast(`${n} in total. Press Group to keep them together.`, 3500);
+}
+function setSize(axis, mm) {
+  if (!sel || !(mm > 0)) return; const b = tf(sel), cur = new THREE.Box3().setFromObject(sel).getSize(new THREE.Vector3()).getComponent(axis);
+  if (!(cur > 0)) return; const k = mm / cur;
+  if ($("#sizeLock")?.checked) sel.scale.multiplyScalar(k); else sel.scale.setComponent(axis, sel.scale.getComponent(axis) * k);
+  push({ t: "tf", o: sel, before: b, after: tf(sel) }); renderPane();
+}
+$("#texIn").onchange = () => {
+  const f = $("#texIn").files[0]; if (!f || !sel) return; const o = sel;
+  new THREE.TextureLoader().load(URL.createObjectURL(f), t => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; const before = firstMat(o)?.map || null; eachMat(o, m => { m.map = t; m.color.set("#ffffff"); m.needsUpdate = true; }); push({ t: "tex", o, before, after: t }); renderPane(); toast("Picture applied to the surface"); });
+};
 
 /* ---------- Import ---------- */
 const fileIn = $("#fileIn");
@@ -248,16 +320,21 @@ async function load(f) {
 
 /* ---------- Panel ---------- */
 const fmt = n => (Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(1));
-function refresh() { $("#empty3d").hidden = world.children.length > 0; ["#dupBtn", "#delBtn", "#dropBtn"].forEach(id => ($(id).disabled = !sel)); renderPane(); }
+function refresh() {
+  $("#empty3d").hidden = world.children.length > 0; ["#dupBtn", "#delBtn", "#dropBtn"].forEach(id => ($(id).disabled = !sel));
+  const canUngroup = sel && sel.userData.kind === "group" && multi.size < 2; $("#groupBtn").disabled = !(multi.size >= 2 || canUngroup); $("#groupLbl").textContent = canUngroup ? "Ungroup" : "Group"; renderPane();
+}
 function renderPane() {
   const p = $("#pane"); let h = "";
-  const list = world.children.map(o => `<div class="obj" role="button" tabindex="0" data-id="${o.uuid}" aria-current="${o === sel}"><span>${esc(o.name)}</span><button class="eye" data-eye="${o.uuid}" aria-label="${o.visible ? "Hide" : "Show"} ${esc(o.name)}" title="${o.visible ? "Hide" : "Show"}">${o.visible ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.9M6.6 6.6C3.9 8.3 2 12 2 12s4 7 10 7c1.7 0 3.2-.5 4.5-1.2"/></svg>'}</button></div>`).join("");
-  h += `<div class="group"><span class="lbl">In the scene (${world.children.length})</span><div class="list">${list || '<p class="note">Nothing yet. Add a shape or open a model.</p>'}</div></div>`;
+  const list = world.children.map(o => `<div class="obj" role="button" tabindex="0" data-id="${o.uuid}" aria-current="${o === sel || multi.has(o)}"><span>${esc(o.name)}</span><button class="eye" data-eye="${o.uuid}" aria-label="${o.visible ? "Hide" : "Show"} ${esc(o.name)}" title="${o.visible ? "Hide" : "Show"}">${o.visible ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.9M6.6 6.6C3.9 8.3 2 12 2 12s4 7 10 7c1.7 0 3.2-.5 4.5-1.2"/></svg>'}</button></div>`).join("");
+  h += `<div class="group"><span class="lbl">In the scene (${world.children.length})${multi.size > 1 ? `, ${multi.size} picked` : ""}</span><div class="list">${list || '<p class="note">Nothing yet. Add a shape or open a model.</p>'}</div></div>`;
   if (sel) {
     const st = matState(sel) || { c: "#cccccc", rough: .5, metal: 0, op: 1, wire: false }, sz = new THREE.Box3().setFromObject(sel).getSize(new THREE.Vector3());
     const rot = sel.rotation, deg = v => THREE.MathUtils.radToDeg(v);
     h += `<div class="sep"></div><div class="field"><label for="oName">Name</label><input type="text" id="oName" value="${esc(sel.name)}"></div>
-      <p class="note">Size <span class="size" id="oSize">${fmt(sz.x)} × ${fmt(sz.y)} × ${fmt(sz.z)} mm</span></p>
+      ${sel.userData.kind === "text" ? `<div class="field"><label for="tText">Text</label><input type="text" id="tText" value="${esc(sel.userData.text)}"></div><div class="row2"><div class="slider"><label for="tSize">Letter size</label><output>${sel.userData.tsize} mm</output><input type="range" id="tSize" min="3" max="60" step="1" value="${sel.userData.tsize}"></div><div class="slider"><label for="tDepth">Thickness</label><output>${sel.userData.depth} mm</output><input type="range" id="tDepth" min="0.5" max="30" step="0.5" value="${sel.userData.depth}"></div></div><p class="note">3D text supports English letters, numbers and common symbols.</p>` : ""}
+      <div class="group"><span class="lbl">Exact size in mm (width, height, depth)</span><div class="xyz"><span></span><input type="number" step="1" min="0.1" data-size="0" aria-label="Width in millimetres" value="${fmt(sz.x)}"><input type="number" step="1" min="0.1" data-size="1" aria-label="Height in millimetres" value="${fmt(sz.y)}"><input type="number" step="1" min="0.1" data-size="2" aria-label="Depth in millimetres" value="${fmt(sz.z)}"></div>
+        <label class="check"><input type="checkbox" id="sizeLock" checked>Keep proportions</label><span class="sr" id="oSize">${fmt(sz.x)} × ${fmt(sz.y)} × ${fmt(sz.z)} mm</span></div>
       <div class="group"><span class="lbl">Position (mm)</span><div class="xyz"><span></span><input type="number" step="1" data-t="p" data-a="0" aria-label="Position X" value="${fmt(sel.position.x)}"><input type="number" step="1" data-t="p" data-a="1" aria-label="Position Y" value="${fmt(sel.position.y)}"><input type="number" step="1" data-t="p" data-a="2" aria-label="Position Z" value="${fmt(sel.position.z)}"></div></div>
       <div class="group"><span class="lbl">Rotation (degrees)</span><div class="xyz"><span></span><input type="number" step="5" data-t="r" data-a="0" aria-label="Rotation X" value="${fmt(deg(rot.x))}"><input type="number" step="5" data-t="r" data-a="1" aria-label="Rotation Y" value="${fmt(deg(rot.y))}"><input type="number" step="5" data-t="r" data-a="2" aria-label="Rotation Z" value="${fmt(deg(rot.z))}"></div></div>
       <div class="group"><span class="lbl">Scale</span><div class="xyz"><span></span><input type="number" step="0.1" min="0.01" data-t="s" data-a="0" aria-label="Scale X" value="${sel.scale.x.toFixed(2)}"><input type="number" step="0.1" min="0.01" data-t="s" data-a="1" aria-label="Scale Y" value="${sel.scale.y.toFixed(2)}"><input type="number" step="0.1" min="0.01" data-t="s" data-a="2" aria-label="Scale Z" value="${sel.scale.z.toFixed(2)}"></div></div>
@@ -267,6 +344,12 @@ function renderPane() {
       <div class="slider"><label for="oMetal">Metallic</label><output>${Math.round(st.metal * 100)}%</output><input type="range" id="oMetal" min="0" max="1" step="0.01" value="${st.metal}"></div>
       <div class="slider"><label for="oOp">Opacity</label><output>${Math.round(st.op * 100)}%</output><input type="range" id="oOp" min="0.1" max="1" step="0.01" value="${st.op}"></div>
       <label class="check"><input type="checkbox" id="oWire" ${st.wire ? "checked" : ""}>Show as wireframe</label>
+      <label class="check"><input type="checkbox" id="oFlat" ${firstMat(sel)?.flatShading ? "checked" : ""}>Faceted look (flat shading)</label>
+      <div class="row2"><button class="btn" data-act="tex">${firstMat(sel)?.map ? "Change picture" : "Add a picture"}</button>${firstMat(sel)?.map ? '<button class="btn" data-act="notex">Remove picture</button>' : ""}</div>
+      <div class="group"><span class="lbl">Mirror</span><div class="row3"><button class="btn" data-mir="0">Left–right</button><button class="btn" data-mir="1">Up–down</button><button class="btn" data-mir="2">Front–back</button></div></div>
+      <details class="group"><summary class="lbl" style="cursor:pointer">Make copies in a row or circle</summary>
+        <div class="row2" style="margin-top:.5rem"><div class="field"><label for="arrN">How many in total</label><input type="number" id="arrN" min="2" max="50" value="6"></div><div class="field"><label for="arrMode">Pattern</label><select id="arrMode"><option value="line">In a row</option><option value="circle">In a circle</option></select></div></div>
+        <div class="field"><label for="arrGap">Gap (row) or radius (circle), mm</label><input type="number" id="arrGap" min="0" value="10"></div><button class="btn" data-act="array">Make copies</button></details>
       <div class="row3"><button class="btn" data-act="dup">Copy</button><button class="btn" data-act="drop">Drop</button><button class="btn danger" data-act="del">Delete</button></div>`;
   } else {
     h += `<div class="sep"></div><h2>Scene</h2><p class="hint">Click an object to edit it. W move, E rotate, R resize.</p>
@@ -286,7 +369,10 @@ pane.addEventListener("click", e => {
   const eye = e.target.closest("[data-eye]"); if (eye) { const o = world.getObjectByProperty("uuid", eye.dataset.eye); o.visible = !o.visible; if (!o.visible && sel === o) select(null); else renderPane(); return; }
   const row = e.target.closest(".obj"); if (row) return select(world.getObjectByProperty("uuid", row.dataset.id));
   const b = e.target.closest("button"); if (!b) return;
-  if (b.dataset.act) return ({ dup: duplicate, drop, del: remove })[b.dataset.act]();
+  if (b.dataset.mir) return mirror(+b.dataset.mir);
+  if (b.dataset.act) return ({ dup: duplicate, drop, del: remove, tex: () => { $("#texIn").value = ""; $("#texIn").click(); },
+    notex: () => { const o = sel, before = firstMat(o)?.map || null; eachMat(o, m => { m.map = null; m.needsUpdate = true; }); push({ t: "tex", o, before, after: null }); renderPane(); },
+    array: () => makeArray(clamp(+$("#arrN").value || 2, 2, 50), $("#arrMode").value, Math.max(0, +$("#arrGap").value || 0)) })[b.dataset.act]?.();
   if (b.id === "paneImport") return fileIn.click();
   if (b.dataset.col) return changeMat({ c: b.dataset.col });
   if (b.dataset.fin) return changeMat({ matte: { rough: .9, metal: 0, op: 1 }, plastic: { rough: .35, metal: 0, op: 1 }, metal: { rough: .25, metal: 1, op: 1 }, glass: { rough: .05, metal: 0, op: .45 } }[b.dataset.fin], true);
@@ -306,13 +392,19 @@ pane.addEventListener("input", e => {
   if (el.id === "gridOn") { S.grid = el.checked; grid.visible = el.checked; }
   if (el.id === "lightSel") setLight(el.value);
   if (el.id === "oWire" && sel) changeMat({ wire: el.checked }, false);
+  if (el.id === "oFlat" && sel) { eachMat(sel, m => { m.flatShading = el.checked; m.needsUpdate = true; }); }
+  if (el.id === "tSize" || el.id === "tDepth") el.closest(".slider").querySelector("output").textContent = el.value + " mm";
 });
 pane.addEventListener("change", e => {
+  if (e.target.dataset.size && sel) setSize(+e.target.dataset.size, parseFloat(e.target.value));
+  if (e.target.id === "tText") updateText({ text: e.target.value || " " });
+  if (e.target.id === "tSize") updateText({ tsize: +e.target.value });
+  if (e.target.id === "tDepth") updateText({ depth: +e.target.value });
   if (matBefore && sel && ["oRough", "oMetal", "oOp", "oCol"].includes(e.target.id)) { push({ t: "mat", o: sel, before: matBefore, after: matState(sel) }); matBefore = null; }
   if (e.target.id === "oName") { $$(".obj span").forEach(s => s.closest(".obj").dataset.id === sel.uuid && (s.textContent = sel.name)); }
 });
 function setLight(v) {
-  S.light = v; const L = { studio: [0xffffff, 0x8a8f99, 1.6, 0xffffff, 2.2], day: [0xbfdcff, 0x7a6a4f, 1.3, 0xfff4e0, 3], warm: [0xffe2c0, 0x6b4f3a, 1.2, 0xffc890, 2.4], night: [0x34406b, 0x101018, .5, 0x9fb4ff, .9] }[v];
+  S.light = v; const L = { studio: [0xffffff, 0x8a8f99, 1.1, 0xffffff, 2.2, .6], day: [0xbfdcff, 0x7a6a4f, 1.1, 0xfff4e0, 3, .5], warm: [0xffe2c0, 0x6b4f3a, 1, 0xffc890, 2.4, .45], night: [0x34406b, 0x101018, .4, 0x9fb4ff, .9, .15] }[v]; scene.environmentIntensity = L[5];
   hemi.color.set(L[0]); hemi.groundColor.set(L[1]); hemi.intensity = L[2]; sun.color.set(L[3]); sun.intensity = L[4];
 }
 
@@ -333,15 +425,31 @@ dlg.addEventListener("click", async e => {
     }
     else if (k === "stl") { const out = new STLExporter().parse(exportRoot(), { binary: true }); download(new Blob([out], { type: "model/stl" }), `${fname()}.stl`); }
     else if (k === "obj") { const out = new OBJExporter().parse(exportRoot()); download(new Blob([out], { type: "text/plain" }), `${fname()}.obj`); }
+    else if (k === "usdz") { const root = exportRoot(); root.scale.multiplyScalar(.001); root.updateMatrixWorld(true); const out = await new USDZExporter().parseAsync(root); download(new Blob([out], { type: "model/vnd.usdz+zip" }), `${fname()}.usdz`); }
+    else if (k === "spin") { dlg.close(); return turntable(); }
     count("d3_exports"); toast(k === "glb" ? "GLB saved in metres, the glTF standard, so it shows at real size in AR." : `${k.toUpperCase()} saved`); dlg.close();
   } catch (err) { console.error(err); toast("Couldn’t export. Try another format."); }
 });
+
+async function turntable() {
+  if (!window.MediaRecorder || !cvs.captureStream) return toast("This browser can’t record video. Try Chrome, Edge or Firefox.");
+  if (!world.children.some(o => o.visible)) return;
+  const keepSel = sel; select(null); frame(); orbit.update(); const gridWas = grid.visible; grid.visible = false;
+  const c = orbit.target.clone(), off = camera.position.clone().sub(c), r = Math.hypot(off.x, off.z), y = off.y, a0 = Math.atan2(off.x, off.z), secs = 8;
+  const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find(m => MediaRecorder.isTypeSupported(m)) || "";
+  const chunks = [], rec = new MediaRecorder(cvs.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 8e6 } : undefined); rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const t0 = performance.now(); toast("Recording an 8-second turntable…", 8000); orbit.enabled = false;
+  spin = () => { const p = (performance.now() - t0) / 1000 / secs; if (p >= 1) { spin = null; rec.stop(); return; } const a = a0 + p * Math.PI * 2; camera.position.set(c.x + Math.sin(a) * r, c.y + y, c.z + Math.cos(a) * r); camera.lookAt(c); };
+  rec.onstop = () => { orbit.enabled = true; grid.visible = gridWas; if (keepSel) select(keepSel); const t = (mime || "video/webm").split(";")[0], ext = t.includes("mp4") ? "mp4" : "webm"; download(new Blob(chunks, { type: t }), `${fname()}-turntable.${ext}`); count("d3_exports"); toast(`Turntable video saved as ${ext.toUpperCase()}`); };
+  rec.start(250);
+}
 
 /* ---------- Keyboard ---------- */
 addEventListener("keydown", e => {
   if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || dlg.open) return; const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (mod && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); } else if (mod && k === "y") { e.preventDefault(); redo(); }
   else if (mod && k === "d") { e.preventDefault(); duplicate(); }
+  else if (mod && k === "g") { e.preventDefault(); groupToggle(); }
   else if (k === "w") setMode("translate"); else if (k === "e") setMode("rotate"); else if (k === "r") setMode("scale");
   else if (k === "f") frame(); else if (k === "delete" || k === "backspace") { if (sel) { e.preventDefault(); remove(); } } else if (k === "escape") select(null);
 });

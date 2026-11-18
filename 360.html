@@ -56,6 +56,7 @@ details.sec .group{margin-top:.7rem}
       <div class="viewbar" id="viewbar" role="radiogroup" aria-label="View" hidden>
         <button class="chip" data-mode="0" aria-pressed="true">360 view</button>
         <button class="chip" data-mode="1" aria-pressed="false">Little planet</button>
+        <button class="chip" data-mode="4" aria-pressed="false">Tunnel</button>
         <button class="chip" data-mode="2" aria-pressed="false">Flat</button>
       </div>
     </main>
@@ -86,7 +87,15 @@ details.sec .group{margin-top:.7rem}
         <div class="slider"><label for="s_bri">Brightness</label><output></output><input type="range" id="s_bri" data-u="bri" min="-0.4" max="0.4" step="0.01" value="0"></div>
         <div class="slider"><label for="s_con">Contrast</label><output></output><input type="range" id="s_con" data-u="con" min="0.5" max="1.6" step="0.01" value="1"></div>
         <div class="slider"><label for="s_sat">Saturation</label><output></output><input type="range" id="s_sat" data-u="sat" min="0" max="2" step="0.01" value="1"></div>
+        <div class="slider"><label for="s_temp">Warmth</label><output></output><input type="range" id="s_temp" data-u="temp" min="-1" max="1" step="0.02" value="0"></div>
+        <div class="slider"><label for="s_vig">Vignette (views only)</label><output></output><input type="range" id="s_vig" data-u="vig" min="0" max="0.8" step="0.02" value="0"></div>
         <button class="btn" id="resetEdits">Reset all edits</button>
+      </div></details>
+      <details class="sec" id="nadirSec"><summary>Hide the tripod</summary><div class="group">
+        <label class="check"><input type="checkbox" id="nadirOn">Cover the bottom of the 360 view</label>
+        <div class="slider"><label for="s_nsize">Patch size</label><output></output><input type="range" id="s_nsize" data-u="nadirSize" min="5" max="45" step="0.5" value="22"></div>
+        <div class="row2"><div class="field"><label for="nadirCol">Colour</label><input type="color" id="nadirCol" value="#1b1f24"></div><div class="field"><label>Logo</label><button class="btn" id="nadirLogo">Add a logo</button></div></div>
+        <p class="note">Use a square logo with a transparent background. It’s placed flat on the ground under the camera.</p>
       </div></details>
       <details class="sec" id="trimSec" hidden><summary>Trim video</summary><div class="group">
         <div class="row2"><div class="field"><label for="tIn">Start (s)</label><input type="number" id="tIn" min="0" step="0.1" value="0"></div><div class="field"><label for="tOut">End (s)</label><input type="number" id="tOut" min="0" step="0.1" value="0"></div></div>
@@ -97,6 +106,8 @@ details.sec .group{margin-top:.7rem}
           <div class="field"><label for="outSize">360 photo size</label><select id="outSize"></select></div>
           <button class="btn primary" id="savePano">Save 360 photo (JPG)</button>
           <button class="btn" id="saveView">Save what you see</button>
+          <div class="row2"><button class="btn" id="spinFlat">Spin-around video</button><button class="btn" id="spinPlanet">Spinning planet video</button></div>
+          <div class="field"><label for="spinSec">Spin video length</label><select id="spinSec"><option value="8">8 seconds</option><option value="12" selected>12 seconds</option><option value="20">20 seconds</option></select></div>
           <p class="note">360 photos include the metadata that Facebook, Google Photos and most 360 viewers look for.</p>
         </div>
         <div id="videoExports" class="group" hidden>
@@ -110,6 +121,7 @@ details.sec .group{margin-top:.7rem}
   </div>
 </div>
 <input type="file" id="fileIn" accept="image/*,video/*" hidden>
+<input type="file" id="logoIn" accept="image/*" hidden>
 <div class="busy" id="busy" hidden><div role="dialog" aria-live="polite" aria-label="Exporting"><strong id="busyMsg">Exporting…</strong><div class="progress"><i id="busyBar"></i></div><p class="note">Keep this tab open while the video records.</p><button class="btn" id="cancel">Cancel</button></div></div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -129,7 +141,8 @@ precision highp float;
 uniform sampler2D src; uniform int srcType; uniform int mode; uniform vec2 res;
 uniform float camYaw, camPitch, fovY, planetZoom;
 uniform mat3 edit; uniform float fov, rad, ox, oy, lrot, blend; uniform bool swapL;
-uniform float bri, con, sat;
+uniform float bri, con, sat, temp, vig;
+uniform bool nadirOn, nadirTexOn; uniform float nadirSize; uniform vec3 nadirCol; uniform sampler2D nadirTex;
 varying vec2 vUv;
 const float PI = 3.14159265359;
 vec3 rotY(vec3 d, float a){ float c=cos(a), s=sin(a); return vec3(c*d.x + s*d.z, d.y, -s*d.x + c*d.z); }
@@ -146,8 +159,15 @@ vec4 lens(vec3 d, bool back){
   float ok = r <= 1.0 ? 1.0 : 0.0;
   return vec4(texture2D(src, uv).rgb * ok, ok);
 }
-vec3 sampleDir(vec3 d){
-  d = normalize(edit * d);
+vec3 sampleDir(vec3 d0){
+  vec3 d = normalize(edit * d0);
+  if (nadirOn) {
+    float ang = degrees(acos(clamp(-d0.y, -1., 1.)));
+    if (ang < nadirSize) {
+      if (nadirTexOn) { vec2 uv = vec2(d0.x, -d0.z) / sin(radians(nadirSize)) * 0.5 + 0.5; vec4 t = texture2D(nadirTex, uv); return mix(nadirCol, t.rgb, t.a); }
+      return nadirCol;
+    }
+  }
   if (srcType == 0) {
     float lon = atan(d.x, -d.z), lat = asin(clamp(d.y,-1.,1.));
     return texture2D(src, vec2(lon/(2.*PI) + 0.5, 0.5 + lat/PI)).rgb;
@@ -162,6 +182,10 @@ vec3 sampleDir(vec3 d){
 void main(){
   vec2 q = vUv*2. - 1.; vec3 d;
   if (mode == 2) { float lon = (vUv.x - 0.5)*2.*PI, lat = (vUv.y - 0.5)*PI; d = vec3(cos(lat)*sin(lon), sin(lat), -cos(lat)*cos(lon)); }
+  else if (mode == 4) {
+    vec2 p = vec2(-q.x * res.x/res.y, q.y) * planetZoom; float r = length(p); float th = 2.*atan(r/2.); float ph = atan(p.y, p.x);
+    d = vec3(sin(th)*cos(ph), cos(th), -sin(th)*sin(ph)); d = rotY(d, camYaw);
+  }
   else if (mode == 1) {
     vec2 p = vec2(-q.x * res.x/res.y, q.y) * planetZoom; float r = length(p); float th = 2.*atan(r/2.); float ph = atan(p.y, p.x);
     d = vec3(sin(th)*cos(ph), -cos(th), sin(th)*sin(ph)); d = rotY(d, camYaw);
@@ -170,6 +194,8 @@ void main(){
   }
   vec3 c = sampleDir(d);
   c = (c - 0.5) * con + 0.5 + bri; float l = dot(c, vec3(.2126,.7152,.0722)); c = mix(vec3(l), c, sat);
+  c *= vec3(1. + temp*0.12, 1. + temp*0.02, 1. - temp*0.14);
+  if (mode != 2 && vig > 0.) { float v = smoothstep(0.45, 1.25, length(q * vec2(res.x/res.y, 1.) / vec2(res.x/res.y, 1.))); c *= 1. - vig * v; }
   gl_FragColor = vec4(clamp(c,0.,1.), 1.);
 }`;
 const vert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`;
@@ -182,7 +208,8 @@ const U = {
   src: { value: null }, srcType: { value: 0 }, mode: { value: 0 }, res: { value: new THREE.Vector2(1, 1) },
   camYaw: { value: 0 }, camPitch: { value: 0 }, fovY: { value: THREE.MathUtils.degToRad(75) }, planetZoom: { value: 3 },
   edit: { value: new THREE.Matrix3() }, fov: { value: 195 }, rad: { value: 1 }, ox: { value: 0 }, oy: { value: 0 }, lrot: { value: 0 }, blend: { value: 4 }, swapL: { value: false },
-  bri: { value: 0 }, con: { value: 1 }, sat: { value: 1 },
+  bri: { value: 0 }, con: { value: 1 }, sat: { value: 1 }, temp: { value: 0 }, vig: { value: 0 },
+  nadirOn: { value: false }, nadirTexOn: { value: false }, nadirSize: { value: 22 }, nadirCol: { value: new THREE.Color("#1b1f24") }, nadirTex: { value: null },
 };
 const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: vert, fragmentShader: frag });
 const scene = new THREE.Scene(); scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
@@ -251,15 +278,15 @@ $$("[data-type]").forEach(b => (b.onclick = () => setType(+b.dataset.type)));
 /* ---------- Controls ---------- */
 $$("#pane input[type=range]").forEach(i => {
   const out = i.closest(".slider")?.querySelector("output");
-  const show = () => { const v = +i.value, u = i.dataset.u; if (out) out.textContent = ["fov", "lrot", "yaw", "pitch", "roll"].includes(u) ? `${v}°` : ["ox", "oy"].includes(u) ? (v * 100).toFixed(1) : ["bri"].includes(u) ? (v > 0 ? "+" : "") + Math.round(v * 100) : ["con", "sat", "rad"].includes(u) ? Math.round(v * 100) + "%" : v; };
+  const show = () => { const v = +i.value, u = i.dataset.u; if (out) out.textContent = ["fov", "lrot", "yaw", "pitch", "roll"].includes(u) ? `${v}°` : ["ox", "oy"].includes(u) ? (v * 100).toFixed(1) : ["bri"].includes(u) ? (v > 0 ? "+" : "") + Math.round(v * 100) : ["con", "sat", "rad"].includes(u) ? Math.round(v * 100) + "%" : u === "nadirSize" ? `${v}°` : ["temp", "vig"].includes(u) ? Math.round(v * 100) : v; };
   i.addEventListener("input", () => { const u = i.dataset.u, v = +i.value; if (u in E) { E[u] = v; updateEdit(); } else { U[u].value = v; render(); } show(); });
   i.addEventListener("dblclick", () => { i.value = i.defaultValue; i.dispatchEvent(new Event("input")); });
   show();
 });
 $("#s_swap").onchange = e => { U.swapL.value = e.target.checked; render(); };
-$("#resetEdits").onclick = () => { $$("#pane input[type=range]").forEach(i => { i.value = i.defaultValue; i.dispatchEvent(new Event("input")); }); $("#s_swap").checked = false; U.swapL.value = false; render(); };
+$("#resetEdits").onclick = () => { $$("#pane input[type=range]").forEach(i => { i.value = i.defaultValue; i.dispatchEvent(new Event("input")); }); $("#s_swap").checked = false; U.swapL.value = false; U.nadirOn.value = false; $("#nadirOn").checked = false; render(); };
 $("#useView").onclick = () => { const y = clamp(Math.round(-THREE.MathUtils.radToDeg(V.yaw) + E.yaw), -180, 180); const s = $("#s_yaw"); s.value = ((y + 540) % 360) - 180; V.yaw = 0; V.pitch = 0; s.dispatchEvent(new Event("input")); toast("Saved files will now start facing this way"); };
-$$("[data-mode]").forEach(b => (b.onclick = () => { U.mode.value = +b.dataset.mode === 2 ? 3 : +b.dataset.mode; $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x === b)); flat = +b.dataset.mode === 2; render(); }));
+$$("[data-mode]").forEach(b => (b.onclick = () => { U.mode.value = +b.dataset.mode === 2 ? 3 : +b.dataset.mode; if (+b.dataset.mode === 4) V.zoom = Math.max(V.zoom, 3); $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x === b)); flat = +b.dataset.mode === 2; render(); }));
 let flat = false;
 // mode 3 = flat preview (equirect on screen); map to shader mode 2
 const _draw = draw; draw = function () { const m = U.mode.value; if (m === 3) U.mode.value = 2; _draw(); U.mode.value = m; }; // eslint-disable-line no-func-assign
@@ -267,18 +294,18 @@ const _draw = draw; draw = function () { const m = U.mode.value; if (m === 3) U.
 /* view navigation */
 const V = { yaw: 0, pitch: 0, fov: 75, zoom: 3 };
 function applyView() { U.camYaw.value = V.yaw; U.camPitch.value = V.pitch; U.fovY.value = THREE.MathUtils.degToRad(V.fov); U.planetZoom.value = V.zoom; render(); }
-function updateCompass() { const deg = ((Math.round(-THREE.MathUtils.radToDeg(V.yaw)) % 360) + 360) % 360; $("#compass").textContent = flat ? "Flat view of the whole 360 image" : U.mode.value === 1 ? "Little planet · drag to spin, scroll to zoom" : `Facing ${deg}° · tilt ${Math.round(THREE.MathUtils.radToDeg(V.pitch))}°`; }
+function updateCompass() { const deg = ((Math.round(-THREE.MathUtils.radToDeg(V.yaw)) % 360) + 360) % 360; $("#compass").textContent = flat ? "Flat view of the whole 360 image" : U.mode.value === 1 ? "Little planet: drag to spin, scroll to zoom" : U.mode.value === 4 ? "Tunnel: drag to spin, scroll to zoom" : `Facing ${deg}° · tilt ${Math.round(THREE.MathUtils.radToDeg(V.pitch))}°`; }
 let pd = null; const pts = new Map();
 cvs.addEventListener("pointerdown", e => { cvs.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); pd = { x: e.clientX, y: e.clientY, yaw: V.yaw, pitch: V.pitch, dist: 0 }; cvs.classList.add("grabbing"); });
 cvs.addEventListener("pointermove", e => {
   if (!pd) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
   if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pd.dist) zoomBy(pd.dist / d); pd.dist = d; return; }
   const k = (V.fov / cvs.clientHeight) * Math.PI / 180;
-  V.yaw = pd.yaw + (e.clientX - pd.x) * k * (U.mode.value === 1 ? 1.5 : 1); if (U.mode.value === 0) V.pitch = clamp(pd.pitch + (e.clientY - pd.y) * k, -1.5, 1.5); applyView();
+  V.yaw = pd.yaw + (e.clientX - pd.x) * k * (U.mode.value === 1 || U.mode.value === 4 ? 1.5 : 1); if (U.mode.value === 0) V.pitch = clamp(pd.pitch + (e.clientY - pd.y) * k, -1.5, 1.5); applyView();
 });
 const up = e => { pts.delete(e.pointerId); if (!pts.size) { pd = null; cvs.classList.remove("grabbing"); } };
 cvs.addEventListener("pointerup", up); cvs.addEventListener("pointercancel", up);
-function zoomBy(f) { if (U.mode.value === 1) V.zoom = clamp(V.zoom * f, .8, 12); else V.fov = clamp(V.fov * f, 25, 120); applyView(); }
+function zoomBy(f) { if (U.mode.value === 1 || U.mode.value === 4) V.zoom = clamp(V.zoom * f, .8, 12); else V.fov = clamp(V.fov * f, 25, 120); applyView(); }
 cvs.addEventListener("wheel", e => { e.preventDefault(); zoomBy(e.deltaY > 0 ? 1.08 : 1 / 1.08); }, { passive: false });
 cvs.tabIndex = 0; cvs.addEventListener("keydown", e => { const s = .08; ({ ArrowLeft: () => (V.yaw += s), ArrowRight: () => (V.yaw -= s), ArrowUp: () => (V.pitch = clamp(V.pitch + s, -1.5, 1.5)), ArrowDown: () => (V.pitch = clamp(V.pitch - s, -1.5, 1.5)), "+": () => zoomBy(1 / 1.1), "-": () => zoomBy(1.1) })[e.key]?.(); applyView(); });
 
@@ -321,7 +348,7 @@ $("#savePano").onclick = () => savePano();
 $("#saveFrame").onclick = () => { fillSizes(); savePano("-frame-360"); };
 $("#saveView").onclick = async () => {
   const k = 2, w = Math.round(cvs.clientWidth * k), h = Math.round(cvs.clientHeight * k), m = U.mode.value === 3 ? 2 : U.mode.value;
-  const c = renderToPixels(Math.min(w, 4096), Math.min(h, 4096), m); c.toBlob(b => { download(b, `${base()}-${m === 1 ? "little-planet" : m === 2 ? "flat" : "view"}.jpg`); count("p360_saves"); toast("Picture saved"); }, "image/jpeg", .92);
+  const c = renderToPixels(Math.min(w, 4096), Math.min(h, 4096), m); c.toBlob(b => { download(b, `${base()}-${m === 1 ? "little-planet" : m === 4 ? "tunnel" : m === 2 ? "flat" : "view"}.jpg`); count("p360_saves"); toast("Picture saved"); }, "image/jpeg", .92);
 };
 let rec = null;
 async function saveVideo(kind) {
@@ -361,6 +388,38 @@ async function saveVideo(kind) {
 $("#saveVid360").onclick = () => saveVideo("360");
 $("#saveVidFlat").onclick = () => saveVideo("flat");
 $("#tIn").onchange = $("#tOut").onchange = () => { const v = SRC.el, a = clamp(+$("#tIn").value, 0, v.duration), b = clamp(+$("#tOut").value, a + .5, v.duration); $("#tIn").value = a.toFixed(1); $("#tOut").value = b.toFixed(1); v.currentTime = a; };
+/* tripod patch */
+$("#nadirOn").onchange = e => { U.nadirOn.value = e.target.checked; render(); };
+$("#nadirCol").oninput = e => { U.nadirCol.value.set(e.target.value); render(); };
+$("#nadirLogo").onclick = () => { $("#logoIn").value = ""; $("#logoIn").click(); };
+$("#logoIn").onchange = () => { const f = $("#logoIn").files[0]; if (!f) return; const img = new Image(); img.onload = () => { const t = new THREE.Texture(img); t.needsUpdate = true; t.colorSpace = THREE.NoColorSpace; U.nadirTex.value?.dispose?.(); U.nadirTex.value = t; U.nadirTexOn.value = true; U.nadirOn.value = true; $("#nadirOn").checked = true; render(); toast("Logo added to the bottom of the view"); }; img.src = URL.createObjectURL(f); };
+/* spin videos from a 360 photo */
+async function spinVideo(mode) {
+  if (!window.MediaRecorder) return toast("This browser can’t record video. Try Chrome, Edge or Firefox.");
+  const secs = +$("#spinSec").value, W = 1920, H = 1080, oc = document.createElement("canvas"); oc.width = W; oc.height = H;
+  const r2 = new THREE.WebGLRenderer({ canvas: oc, preserveDrawingBuffer: true }); r2.setPixelRatio(1); r2.setSize(W, H, false);
+  const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find(m => MediaRecorder.isTypeSupported(m)) || "";
+  const stream = oc.captureStream(30), chunks = []; rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8e6 } : undefined);
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data); let cancelled = false;
+  const keep = { mode: U.mode.value, yaw: U.camYaw.value, pitch: U.camPitch.value, res: U.res.value.clone(), zoom: U.planetZoom.value };
+  $("#busy").hidden = false; $("#busyMsg").textContent = mode === 1 ? "Recording a spinning planet" : "Recording a spin-around video";
+  $("#cancel").onclick = () => { cancelled = true; rec.stop(); };
+  rec.onstop = () => {
+    $("#busy").hidden = true; r2.dispose(); Object.assign(U.mode, { value: keep.mode }); U.camYaw.value = keep.yaw; U.camPitch.value = keep.pitch; U.res.value.copy(keep.res); U.planetZoom.value = keep.zoom; rec = null; render();
+    if (cancelled) return toast("Export cancelled"); const t = (mime || "video/webm").split(";")[0], ext = t.includes("mp4") ? "mp4" : "webm";
+    download(new Blob(chunks, { type: t }), `${base()}-${mode === 1 ? "planet" : "spin"}.${ext}`); count("p360_spin"); toast(`Video saved as ${ext.toUpperCase()}`);
+  };
+  rec.start(250); const t0 = performance.now();
+  const frame = () => {
+    if (!rec || rec.state === "inactive") return; const p = (performance.now() - t0) / 1000 / secs;
+    if (p >= 1) { rec.stop(); return; }
+    U.mode.value = mode; U.res.value.set(W, H); U.camYaw.value = keep.yaw - p * Math.PI * 2; U.camPitch.value = mode === 0 ? keep.pitch : 0; U.planetZoom.value = mode === 1 ? Math.max(keep.zoom, 2.6) : keep.zoom;
+    r2.render(scene, cam); $("#busyBar").style.width = p * 100 + "%"; requestAnimationFrame(frame);
+  };
+  frame();
+}
+$("#spinFlat").onclick = () => spinVideo(0);
+$("#spinPlanet").onclick = () => spinVideo(1);
 try { if (!sessionStorage.getItem("booth-360-visit")) { sessionStorage.setItem("booth-360-visit", "1"); count("p360_visits"); } } catch {}
 applyView(); updateEdit();
 </script>
