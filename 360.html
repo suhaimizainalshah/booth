@@ -124,6 +124,7 @@ details.sec .group{margin-top:.7rem}
 <input type="file" id="logoIn" accept="image/*" hidden>
 <div class="busy" id="busy" hidden><div role="dialog" aria-live="polite" aria-label="Exporting"><strong id="busyMsg">Exporting…</strong><div class="progress"><i id="busyBar"></i></div><p class="note">Keep this tab open while the video records.</p><button class="btn" id="cancel">Cancel</button></div></div>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
 
 <script type="importmap">{ "imports": { "three": "./vendor/three/build/three.module.js" } }</script>
 <script type="module">
@@ -229,9 +230,13 @@ const fileIn = $("#fileIn");
 $("#openBtn").onclick = $("#emptyOpen").onclick = () => { fileIn.value = ""; fileIn.click(); };
 fileIn.onchange = () => fileIn.files[0] && open(fileIn.files[0]);
 const stage = $("#stage");
-["dragenter", "dragover"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add("drag"); }));
-["dragleave", "drop"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove("drag"); }));
-stage.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) open(f); });
+/* drop files anywhere on the page (handled by assets/booth-ux.js) */
+const isImg = f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|avif|heic)$/i.test(f.name), isVid = f => f.type.startsWith("video/") || /\.(mp4|m4v|mov|webm)$/i.test(f.name);
+window.BoothDrop = {
+  accept: f => isImg(f) || isVid(f) || /\.(insv|insp|360)$/i.test(f.name), acceptType: t => /^(image|video)\//.test(t),
+  label: "Drop a 360° photo or video", hint: "Stitched 2:1 files or raw dual-lens files, such as Samsung Gear 360 originals.", reject: "360° photos and videos only.",
+  open: files => open(files[0]), onReject: () => toast("Drop a 360° photo or video (JPG or MP4)."),
+};
 async function open(f) {
   if (!renderer) return;
   if (/\.(insv|insp|360)$/i.test(f.name)) return toast("Export this file as an MP4 or JPG in the camera’s own app first, then open it here.", 5000);

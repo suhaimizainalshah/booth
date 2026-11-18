@@ -88,7 +88,7 @@ details.sec>.group{margin-top:.7rem}
           <h1>Make a video from clips, photos and music</h1>
           <p>Trim and cut, change speed, add text and a soundtrack, then export. Free, and your files stay on this device.</p>
           <div class="row"><button class="btn primary" id="emptyAdd">Add videos and photos</button><button class="btn" id="emptyMusic">Add music</button></div>
-          <p class="note">Drop files here too. Works best with MP4, MOV (H.264), WebM, JPG, PNG, MP3 and M4A.</p>
+          <p class="note">Or drop files anywhere on this page. Works best with MP4, MOV (H.264), WebM, JPG, PNG, MP3 and M4A.</p>
         </section>
         <canvas id="cv" width="1280" height="720" hidden aria-label="Video preview"></canvas>
       </div>
@@ -141,7 +141,7 @@ details.sec>.group{margin-top:.7rem}
 <dialog id="exportDlg" aria-labelledby="exTitle"><div class="dlg">
   <h2 id="exTitle">Export</h2>
   <div class="group">
-    <button class="btn block primary" data-ex="video">Video (MP4 where supported)</button>
+    <button class="btn block primary" data-primary data-ex="video">Video (MP4 where supported)</button>
     <button class="btn block" data-ex="gif">Animated GIF</button>
     <button class="btn block" data-ex="audio">Audio only</button>
     <button class="btn block" data-ex="frame">This frame as a picture (PNG)</button>
@@ -153,6 +153,7 @@ details.sec>.group{margin-top:.7rem}
 </div></dialog>
 <div class="busy" id="busy" hidden><div role="dialog" aria-live="polite" aria-label="Exporting"><strong id="busyMsg">Exporting…</strong><div class="progress"><i id="busyBar"></i></div><p class="note" id="busyNote">Your video plays through once while it records. Keep this tab open.</p><button class="btn" id="cancelExport">Cancel</button></div></div>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
 <script src="assets/sounds.js"></script>
 
 <script>
@@ -285,9 +286,17 @@ $("#addMusicBtn").onclick = $("#emptyMusic").onclick = () => { $("#musicIn").val
 fileIn.onchange = () => addFiles([...fileIn.files]);
 $("#musicIn").onchange = () => addFiles([...$("#musicIn").files], true);
 const stage = $("#stage");
-["dragenter", "dragover"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add("drag"); }));
-["dragleave", "drop"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove("drag"); }));
-stage.addEventListener("drop", e => addFiles([...e.dataTransfer.files]));
+/* drop files anywhere on the page (handled by assets/booth-ux.js) */
+const isImg = f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(f.name);
+const isVid = f => f.type.startsWith("video/") || /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(f.name);
+const isAud = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|weba)$/i.test(f.name);
+window.BoothDrop = {
+  accept: f => isImg(f) || isVid(f) || isAud(f), acceptType: t => /^(image|video|audio)\//.test(t),
+  label: () => (P.clips.length ? "Drop to add to your video" : "Drop videos, photos or music to start"), hint: "Videos and photos go on the video track; music and sounds go on the audio track.",
+  reject: "Try MP4, MOV, WebM, JPG, PNG, MP3 or M4A.",
+  open: files => { const a = files.filter(f => isAud(f) && !isVid(f)), v = files.filter(f => !(isAud(f) && !isVid(f))); if (v.length) addFiles(v); if (a.length) addFiles(a, true); },
+  onReject: () => toast("Booth can’t open that file here. Try MP4, MOV, WebM, JPG, PNG, MP3 or M4A."),
+};
 function loadEl(kind, url) {
   return new Promise((res, rej) => {
     if (kind === "image") { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; return; }

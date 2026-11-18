@@ -95,7 +95,7 @@
 <dialog id="exportDlg" aria-labelledby="exTitle"><div class="dlg">
   <h2 id="exTitle">Export</h2>
   <div class="group">
-    <button class="btn block" data-ex="glb">GLB: for the web, AR, Blender and Booth’s shop</button>
+    <button class="btn block primary" data-primary data-ex="glb">GLB: for the web, AR, Blender and Booth’s shop</button>
     <button class="btn block" data-ex="stl">STL: for 3D printing</button>
     <button class="btn block" data-ex="obj">OBJ: for most 3D apps</button>
     <button class="btn block" data-ex="usdz">USDZ: view in AR on iPhone and iPad</button>
@@ -107,6 +107,7 @@
   <div style="display:flex;justify-content:flex-end"><button class="btn" id="exClose">Close</button></div>
 </div></dialog>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
 
 <script type="importmap">{ "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
 <script type="module">
@@ -297,9 +298,14 @@ const fileIn = $("#fileIn");
 $("#importBtn").onclick = $("#emptyImport").onclick = () => { fileIn.value = ""; fileIn.click(); };
 fileIn.onchange = () => [...fileIn.files].forEach(load);
 const stage = $("#stage");
-["dragenter", "dragover"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add("drag"); }));
-["dragleave", "drop"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove("drag"); }));
-stage.addEventListener("drop", e => [...e.dataTransfer.files].forEach(load));
+/* drop files anywhere on the page (handled by assets/booth-ux.js) */
+const isModel = f => /\.(glb|gltf|obj|stl|ply)$/i.test(f.name), isPic = f => f.type.startsWith("image/");
+window.BoothDrop = {
+  accept: f => isModel(f) || (isPic(f) && !!sel), acceptType: t => !t || /model|octet-stream|sla|image\//.test(t),
+  label: () => (sel ? "Drop a model to add it, or a picture to put on the selected object" : "Drop 3D models to add them"), hint: "GLB, glTF, OBJ, STL or PLY.", reject: "3D models only: GLB, glTF, OBJ, STL or PLY.",
+  open: files => { const pics = files.filter(isPic); if (pics.length && sel) { const dt = new DataTransfer(); dt.items.add(pics[0]); $("#texIn").files = dt.files; $("#texIn").dispatchEvent(new Event("change")); } files.filter(isModel).forEach(load); },
+  onReject: () => toast("Drop a GLB, glTF, OBJ, STL or PLY model. Select an object first to drop a picture onto it."),
+};
 async function load(f) {
   const ext = f.name.split(".").pop().toLowerCase(), buf = await f.arrayBuffer(); let o;
   try {

@@ -295,7 +295,7 @@ a.brand:hover{background:var(--soft)}
           <button class="btn" id="emptyPassport">Make a passport photo</button>
           <button class="btn" id="emptyBatch">Compress or resize many photos</button>
         </div>
-        <p class="note">You can also drop a photo here or paste one with Ctrl+V.</p>
+        <p class="note">You can also drop photos anywhere on this page, or paste one with Ctrl+V.</p>
         <nav class="studios" aria-label="More studios"><a href="video.html">Edit a video</a><a href="audio.html">Edit audio</a><a href="360.html">360° photos and videos</a><a href="3d.html">Make a 3D model</a></nav>
         <p class="privacy">Booth counts visits and saves anonymously, without cookies or personal data.</p>
       </section>
@@ -500,7 +500,7 @@ a.brand:hover{background:var(--soft)}
 
 <dialog id="exportDlg" aria-labelledby="exTitle">
   <form class="dlg" method="dialog" id="exForm">
-    <header><h2 id="exTitle">Save image</h2><button class="ibtn" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+    <header><h2 id="exTitle">Save image</h2><button type="button" class="ibtn" value="cancel" aria-label="Close" onclick="this.closest('dialog').close()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
     <div class="group"><span class="lbl">Format</span><div class="chips" id="exFormats"></div></div>
     <p class="note" id="exAlphaNote" hidden>JPG can’t keep see-through areas, so they’ll be white.</p>
     <div class="slider" id="exQualityWrap"><label for="exQuality">Quality</label><output id="exQualityOut">90%</output><input type="range" id="exQuality" min="30" max="100" value="90"></div>
@@ -511,13 +511,14 @@ a.brand:hover{background:var(--soft)}
     <div class="field"><label for="exName">File name</label><input type="text" id="exName" autocomplete="off"></div>
     <div class="est"><span id="exDims">–</span><span>File size <b id="exSize">–</b></span></div>
     <div class="actions">
-      <button type="button" class="btn primary" id="exSave">Download</button>
+      <button type="button" class="btn primary" id="exSave" data-primary>Download</button>
       <button type="button" class="btn" id="exCopy">Copy</button>
       <button type="button" class="btn" id="exShare" hidden>Share</button>
     </div>
   </form>
 </dialog>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
 
 <script>
 "use strict";
@@ -768,9 +769,17 @@ function goHome() {
   $("#emptyOpen").focus(); return true;
 }
 $("#homeLink").addEventListener("click", e => { e.preventDefault(); goHome(); });
-["dragenter", "dragover"].forEach(e => stage.addEventListener(e, ev => { ev.preventDefault(); stage.classList.add("drag"); }));
-["dragleave", "drop"].forEach(e => stage.addEventListener(e, ev => { ev.preventDefault(); stage.classList.remove("drag"); }));
-stage.addEventListener("drop", e => { const f = [...e.dataTransfer.files].find(f => f.type.startsWith("image/")); if (f) loadFile(f); });
+/* drop files anywhere on the page (handled by assets/booth-ux.js) */
+const isImg = f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(f.name);
+const isVid = f => f.type.startsWith("video/") || /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(f.name);
+const isAud = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|weba)$/i.test(f.name);
+window.BoothDrop = {
+  accept: isImg, acceptType: t => t.startsWith("image/"),
+  label: () => (!$("#batch").hidden ? "Drop photos to add them to the batch" : "Drop a photo to edit it"),
+  hint: "JPG, PNG, WebP, GIF or AVIF. Drop several to compress or resize them together.", reject: "Booth’s photo editor opens images. Try the Video or Audio studio for other files.",
+  open: files => { if (!$("#batch").hidden) return addBatch(files); if (files.length > 1) { showBatch(true); return addBatch(files); } loadFile(files[0]); },
+  onReject: () => toast("That isn’t an image. Use the Video or Audio studio for other files."),
+};
 addEventListener("paste", e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/")); if (!it) return; if (!$("#batch").hidden) addBatch([it.getAsFile()]); else loadFile(it.getAsFile()); });
 
 /* ---------- Tools ---------- */

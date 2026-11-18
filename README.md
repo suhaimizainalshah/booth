@@ -1,4 +1,4 @@
-# Booth: free photo, video and audio editor plus passport photo maker with 3D and 360 media capabilities.
+# Booth: free photo editor and passport photo maker
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
@@ -17,7 +17,7 @@ One file (`index.html`), no account, no server. Photos are edited inside your br
 - Undo/redo (Ctrl+Z / Ctrl+Shift+Z), hold **Compare** to see the original, **Start over** anytime.
 
 ## Visitor and save counts
-Booth counts visits and saves anonymously with the free [Abacus](https://abacus.jasoncameron.dev) counter: no cookies, no names, no tracking across sites, and nothing is counted for visitors whose browser sends *Do Not Track* or *Global Privacy Control*. To see your totals, add `#stats` to your site address, for example `https://<you>.github.io/booth/#stats`. Change `COUNTER.ns` near the top of the script to a name only you use, or set `COUNTER.on` to `false` to switch counting off.
+Booth counts visits and saves anonymously with the free [Abacus](https://abacus.jasoncameron.dev) counter: no cookies, no names, no tracking across sites, and nothing is counted for visitors whose browser sends *Do Not Track* or *Global Privacy Control*. To see your totals, add `#stats` to your site address, for example `https://your-site.example/#stats`. Change `COUNTER.ns` near the top of the script to a name only you use, or set `COUNTER.on` to `false` to switch counting off.
 
 Click the Booth logo at any time to go back to the start.
 
@@ -60,5 +60,18 @@ About trending sounds and copyright: naming a song in a caption or a file's deta
 
 3D and 360 use three.js r169 (MIT), included in `vendor/three/`. MP3 export uses lamejs 1.2.1 (LGPL-3.0), included in `vendor/lamejs/`.
 
-## Updating your GitHub repo
-Upload everything in this folder, keeping the folder structure: `index.html`, `video.html`, `audio.html`, `360.html`, `3d.html`, `README.md`, the `assets` folder and the `vendor` folder. The new studios must be opened from your GitHub Pages address (or a local server), not by double-clicking, because browsers block their modules on `file://` pages.
+## Opening files
+- **Drag and drop anywhere:** drop files anywhere on any studio page, not just the empty area. A large drop target shows what will happen, and files that a studio can’t open are rejected with a short explanation.
+  - Photo: drop one image to edit it, or several to compress or resize them together.
+  - Video: videos and photos go on the video track; music and sounds go on the audio track.
+  - Audio: drop audio, or a video to extract its sound. Hold Shift while dropping to add a file to the end.
+  - 360°: drop a 360 photo or video.
+  - 3D: drop GLB, glTF, OBJ, STL or PLY models, or a picture to put on the selected object.
+- You can still use the Open buttons, and paste a photo with Ctrl+V in the photo editor.
+
+## Keyboard
+- **Enter confirms:** in every save or export window, Enter runs the main action (Download, Export video, Download MP3, GLB) instead of closing the window. Press Escape to close.
+- Inputs that go with a button, such as “Silence to insert”, also run that button on Enter.
+
+The new studios must be opened from a website or a local server, not by double-clicking the file, because browsers block their modules on file:// pages.
+

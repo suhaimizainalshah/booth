@@ -45,7 +45,7 @@
         <div class="row2"><div class="field"><label for="cTitle">Track title</label><input type="text" id="cTitle"></div><div class="field"><label for="cArtist">Artist</label><input type="text" id="cArtist"></div></div>
         <div class="row2"><div class="field"><label for="cLic">Licence</label><select id="cLic">${LICENCES.map(l => `<option>${esc(l)}</option>`).join("")}</select></div><div class="field"><label for="cLink">Link (optional)</label><input type="text" id="cLink" inputmode="url"></div></div>
         <output id="cOut" aria-live="polite"></output>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" id="cCopy" type="button">Copy for your caption</button><button class="btn" id="cUse" type="button" hidden>Add to my video</button></div></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn primary" id="cCopy" type="button" data-primary>Copy for your caption</button><button class="btn" id="cUse" type="button" hidden>Add to my video</button></div></div>
       <div style="display:flex;justify-content:flex-end"><button class="btn" id="sndClose" type="button">Close</button></div></div>`;
     document.body.appendChild(dlg);
     const $ = s => dlg.querySelector(s);

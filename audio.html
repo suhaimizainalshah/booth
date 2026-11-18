@@ -79,7 +79,7 @@ details.sec>.group{margin-top:.7rem}
       <details class="sec" open><summary>Cut and arrange</summary><div class="group">
         <div class="row2"><div class="field"><label for="selA">Selection start (s)</label><input type="number" id="selA" step="0.01" min="0"></div><div class="field"><label for="selB">Selection end (s)</label><input type="number" id="selB" step="0.01" min="0"></div></div>
         <div class="row2"><button class="btn" data-op="all">Select all</button><button class="btn" data-op="trim">Keep only selection</button><button class="btn" data-op="del">Delete selection</button><button class="btn" data-op="silence">Make silent</button></div>
-        <div class="row2"><div class="field"><label for="silLen">Silence to insert (s)</label><input type="number" id="silLen" step="0.5" min="0.1" value="1"></div><div class="field"><label>&nbsp;</label><button class="btn" data-op="insertSil">Insert at playhead</button></div></div>
+        <div class="row2"><div class="field"><label for="silLen">Silence to insert (s)</label><input type="number" id="silLen" step="0.5" min="0.1" value="1" data-enter="#insertSilBtn"></div><div class="field"><label>&nbsp;</label><button class="btn" data-op="insertSil" id="insertSilBtn">Insert at playhead</button></div></div>
         <div class="row2"><button class="btn" data-op="append">Add a file at the end</button><button class="btn" data-op="mix">Mix a file in at playhead</button></div>
       </div></details>
       <details class="sec" open><summary>Quick fixes</summary><div class="group">
@@ -115,11 +115,12 @@ details.sec>.group{margin-top:.7rem}
   <h2 id="exTitle">Export audio</h2>
   <label class="check"><input type="checkbox" id="exSel">Only the selection</label>
   <div class="field"><label for="mp3Rate">MP3 quality</label><select id="mp3Rate"><option value="128">128 kbps, smaller</option><option value="192" selected>192 kbps</option><option value="320">320 kbps, best</option></select></div>
-  <div class="group"><button class="btn primary block" data-ex="mp3">Download MP3</button><button class="btn block" data-ex="wav">Download WAV (uncompressed)</button><button class="btn block" data-ex="video">Use in the Video editor</button></div>
+  <div class="group"><button class="btn primary block" data-primary data-ex="mp3">Download MP3</button><button class="btn block" data-ex="wav">Download WAV (uncompressed)</button><button class="btn block" data-ex="video">Use in the Video editor</button></div>
   <div style="display:flex;justify-content:flex-end"><button class="btn" id="exClose">Close</button></div>
 </div></dialog>
 <div class="busy" id="busy" hidden><div id="busyMsg" role="status">Working…</div></div>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
 <script src="assets/sounds.js"></script>
 <script>
 "use strict";
@@ -166,9 +167,18 @@ $("#openBtn").onclick = $("#emptyOpen").onclick = () => { $("#fileIn").value = "
 $("#fileIn").onchange = () => $("#fileIn").files[0] && openFile($("#fileIn").files[0]);
 $("#findBtn").onclick = $("#emptyFind").onclick = () => window.BoothSounds.open();
 const stage = $("#stage");
-["dragenter", "dragover"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add("drag"); }));
-["dragleave", "drop"].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove("drag"); }));
-stage.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) openFile(f); });
+/* drop files anywhere on the page (handled by assets/booth-ux.js) */
+const isImg = f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(f.name);
+const isVid = f => f.type.startsWith("video/") || /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(f.name);
+const isAud = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|weba)$/i.test(f.name);
+window.BoothDrop = {
+  accept: f => isAud(f) || isVid(f), acceptType: t => /^(audio|video)\//.test(t),
+  label: () => (buf ? "Drop to replace, or hold Shift to add at the end" : "Drop audio, or a video to extract its sound"), hint: "MP3, M4A, WAV, OGG, FLAC, or MP4, MOV and WebM video.",
+  reject: "Audio and video files only.",
+  open: async files => { const f = files[0]; if (buf && dropShift) { busy("Adding…"); try { push(insertAt(buf, await decodeFile(f), buf.length)); toast("Added at the end"); } catch { toast("That file can’t be opened."); } busy(false); return; } if (buf && hist.length && !confirm("Replace the audio you’re editing? Unsaved changes will be lost.")) return; openFile(f); },
+  onReject: () => toast("Drop an audio file, or a video to extract its sound."),
+};
+let dropShift = false; addEventListener("dragover", e => (dropShift = e.shiftKey)); addEventListener("drop", e => (dropShift = e.shiftKey), true);
 
 /* ---------- Recording ---------- */
 let recState = null;
