@@ -41,7 +41,7 @@ details.sec>.group{margin-top:.7rem}
 <div class="app">
   <header class="top">
     <a class="brand" href="./" aria-label="Booth home"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><rect x="7" y="7" width="8" height="8" rx="1.5" fill="#fff"/><rect x="17" y="7" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="7" y="17" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="17" y="17" width="8" height="8" rx="1.5" fill="#fff"/></svg><span>Booth</span></a>
-    <nav class="modes" aria-label="Studios"><a href="./">Photo</a><a href="./#batch" class="m-hide">Many photos</a><a href="video.html">Video</a><a href="audio.html" aria-current="page">Audio</a><a href="360.html">360°</a><a href="3d.html">3D</a></nav>
+    <nav class="modes" aria-label="Studios"><a href="./">Photo</a><a href="./#batch" class="m-hide">Many photos</a><a href="design.html">Design</a><a href="video.html">Video</a><a href="audio.html" aria-current="page">Audio</a><a href="animate.html">Animate</a><a href="360.html">360°</a><a href="3d.html">3D</a></nav>
     <span class="spacer"></span>
     <button class="ibtn" id="undo" disabled aria-label="Undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
     <button class="ibtn" id="redo" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -81,6 +81,15 @@ details.sec>.group{margin-top:.7rem}
         <div class="row2"><button class="btn" data-op="all">Select all</button><button class="btn" data-op="trim">Keep only selection</button><button class="btn" data-op="del">Delete selection</button><button class="btn" data-op="silence">Make silent</button></div>
         <div class="row2"><div class="field"><label for="silLen">Silence to insert (s)</label><input type="number" id="silLen" step="0.5" min="0.1" value="1" data-enter="#insertSilBtn"></div><div class="field"><label>&nbsp;</label><button class="btn" data-op="insertSil" id="insertSilBtn">Insert at playhead</button></div></div>
         <div class="row2"><button class="btn" data-op="append">Add a file at the end</button><button class="btn" data-op="mix">Mix a file in at playhead</button></div>
+      </div></details>
+      <details class="sec" open><summary>Remove silences</summary><div class="group">
+        <p class="note" style="margin-top:0">Finds pauses and dead air, shows them in red, then cuts them out with smooth joins. Great for talks, podcasts and voiceovers.</p>
+        <div class="slider"><label for="rcThr">Quiet below</label><output>Auto</output><input type="range" id="rcThr" min="-70" max="-20" step="1" value="-42"></div>
+        <label class="check" style="display:flex;gap:.5rem;align-items:center;font-size:.92rem;margin:.1rem 0 .4rem"><input type="checkbox" id="rcAuto" checked> Set the level automatically</label>
+        <div class="slider"><label for="rcMin">Shortest pause to cut</label><output>0.6 s</output><input type="range" id="rcMin" min="0.2" max="3" step="0.1" value="0.6"></div>
+        <div class="slider"><label for="rcKeep">Pause to leave</label><output>0.20 s</output><input type="range" id="rcKeep" min="0" max="1" step="0.05" value="0.2"></div>
+        <div class="row2"><button class="btn" data-op="rcFind">Find silences</button><button class="btn primary" data-op="rcCut">Remove silences</button></div>
+        <p class="note" id="rcInfo" aria-live="polite"></p>
       </div></details>
       <details class="sec" open><summary>Quick fixes</summary><div class="group">
         <div class="row2"><button class="btn" data-op="fadeIn">Fade in</button><button class="btn" data-op="fadeOut">Fade out</button><button class="btn" data-op="normalize">Make louder (normalise)</button><button class="btn" data-op="reverse">Reverse</button></div>
@@ -122,6 +131,7 @@ details.sec>.group{margin-top:.7rem}
 <div class="toast" id="toast" role="status"></div>
 <script src="assets/booth-ux.js"></script>
 <script src="assets/sounds.js"></script>
+<script src="assets/recut.js"></script>
 <script>
 "use strict";
 (() => {
@@ -141,7 +151,9 @@ function undo() { if (!hist.length) return; stopPlay(); fut.push(buf); buf = his
 function redo() { if (!fut.length) return; stopPlay(); hist.push(buf); buf = fut.pop(); changed(); }
 $("#undo").onclick = undo; $("#redo").onclick = redo;
 const dur = () => (buf ? buf.duration : 0);
+let silences = null;
 function changed() {
+  silences = null; if ($("#rcInfo")) $("#rcInfo").textContent = "";
   $("#undo").disabled = !hist.length; $("#redo").disabled = !fut.length; $("#exportBtn").disabled = !buf;
   if (!buf) return; buildPeaks(); if (selB != null) { selA = clamp(selA, 0, dur()); selB = clamp(selB, 0, dur()); if (selB - selA < .005) selA = selB = null; }
   head = clamp(head, 0, dur()); if (view.end > dur() || view.end <= view.start) fit(); syncInfo(); drawWave();
@@ -217,6 +229,7 @@ function drawWave() {
   cx.fillStyle = css("--panel"); cx.fillRect(0, 0, W, H);
   const x = t => (t - view.start) / span * W;
   if (selB != null) { cx.fillStyle = "rgba(15,157,176,.18)"; cx.fillRect(x(selA), rulerH, x(selB) - x(selA), H - rulerH); }
+  if (silences) { cx.fillStyle = "rgba(224,65,43,.22)"; for (const [a, b] of silences) if (b > view.start && a < view.end) cx.fillRect(x(a), rulerH, Math.max(1, x(b) - x(a)), H - rulerH); }
   cx.strokeStyle = css("--line"); cx.beginPath(); cx.moveTo(0, mid); cx.lineTo(W, mid); cx.stroke();
   cx.fillStyle = css("--accent"); cx.beginPath();
   const chs = [...Array(buf.numberOfChannels).keys()].map(c => buf.getChannelData(c));
@@ -299,7 +312,18 @@ function gate(o, s0, s1) {
 /* ---------- Operations ---------- */
 const needSel = () => { if (selB == null) { toast("Drag on the waveform to select a part first."); return true; } return false; };
 let addMode = null;
+const rcChannels = () => [...Array(buf.numberOfChannels).keys()].map(c => buf.getChannelData(c));
+function rcFind() {
+  const chs = rcChannels();
+  if ($("#rcAuto").checked) { const t = Math.round(BoothRecut.autoThreshold(chs, buf.sampleRate)); $("#rcThr").value = t; $("#rcThr").previousElementSibling.textContent = `${t} dB (auto)`; }
+  const cuts = BoothRecut.find(chs, buf.sampleRate, { thresholdDb: +$("#rcThr").value, minSilence: +$("#rcMin").value, keepPause: +$("#rcKeep").value });
+  const t = BoothRecut.total(cuts); silences = cuts; drawWave();
+  $("#rcInfo").textContent = cuts.length ? `Found ${cuts.length} pause${cuts.length > 1 ? "s" : ""}: removing them saves ${fmt(t)} (${Math.round(t / dur() * 100)}% of the audio).` : "No pauses found at this level. Raise “Quiet below” or lower “Shortest pause”.";
+  return cuts;
+}
 const OPS = {
+  rcFind: () => { rcFind(); },
+  rcCut: () => { const cuts = silences || rcFind(); if (!cuts.length) return; const saved = BoothRecut.total(cuts); push(BoothRecut.cutBuffer(ac(), buf, cuts)); selA = selB = null; head = 0; fit(); drawWave(); toast(`Removed ${cuts.length} pause${cuts.length > 1 ? "s" : ""}, ${fmt(saved)} shorter`); },
   all: () => { selA = 0; selB = dur(); head = 0; syncInfo(); drawWave(); },
   trim: () => { if (needSel()) return; const [s0, s1] = range(); push(slice(buf, s0, s1)); selA = selB = null; head = 0; fit(); drawWave(); toast("Kept only the selection"); },
   del: () => { if (needSel()) return; const [s0, s1] = range(); if (s1 - s0 >= buf.length) return toast("That would delete everything."); push(replace(buf, s0, s1, mk(buf.numberOfChannels, 0, buf.sampleRate))); head = selA; selA = selB = null; changed(); toast("Deleted"); },
@@ -341,6 +365,7 @@ $("#pane").addEventListener("click", async e => {
 });
 $("#pane").addEventListener("input", e => {
   const el = e.target, o = el.closest(".slider")?.querySelector("output"); if (!o) return; const v = +el.value;
+  if (el.id === "rcThr") { $("#rcAuto").checked = false; } if (["rcThr", "rcMin", "rcKeep"].includes(el.id)) { o.textContent = el.id === "rcThr" ? `${v} dB` : el.id === "rcMin" ? `${v.toFixed(1)} s` : `${v.toFixed(2)} s`; if (silences) rcFind(); return; }
   o.textContent = { vol: `${v > 0 ? "+" : ""}${v} dB`, spd: `${v.toFixed(2)}×`, eqB: `${v > 0 ? "+" : ""}${v} dB`, eqM: `${v > 0 ? "+" : ""}${v} dB`, eqT: `${v > 0 ? "+" : ""}${v} dB`, echoMs: `${v} ms`, echoFb: `${v}%`, rvSize: `${v.toFixed(1)} s` }[el.id] ?? v;
 });
 

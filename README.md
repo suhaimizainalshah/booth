@@ -1,4 +1,4 @@
-# Booth: free photo, video and audio editor as well as a passport photo maker.
+# Booth: free photo editor and passport photo maker
 
 One file (`index.html`), no account, no server. Photos are edited inside your browser and never uploaded anywhere.
 
@@ -59,6 +59,30 @@ About trending sounds and copyright: naming a song in a caption or a file's deta
 - 3D text supports English letters, numbers and common symbols.
 
 3D and 360 use three.js r169 (MIT), included in `vendor/three/`. MP3 export uses lamejs 1.2.1 (LGPL-3.0), included in `vendor/lamejs/`.
+
+## Design (Canva-style layouts, Photoshop-style retouching)
+`design.html` is a layout studio:
+- **Ready sizes:** Instagram post, story, YouTube thumbnail, LinkedIn post and banner, presentation slide, A4 poster, A5 flyer, business card, X post, or a custom size. Six starter templates.
+- **Layers:** text (six fonts, spacing, caps, highlight boxes), eight shapes with gradient fills, 30 icons and illustrations, characters from the Animate people builder, photos and QR codes. Drag, resize, rotate, snap to centre and edges, align, reorder, lock and hide.
+- **Effects and blending:** opacity, 14 blend modes, shadow, outline and glow.
+- **Photo tools:** erase and restore brushes, clone stamp (Alt- or Shift-click a source), healing brush, remove a colour by click (touching or everywhere), AI background removal (downloads its model the first time), 2× enlargement, adjustments (brightness, contrast, saturation, hue, blur, black and white, warm vintage), frames (rounded, circle, arch) and flip.
+- **Resize to another format** in one click, with everything rescaled and kept inside the edges.
+- **Brand kit:** your colours and heading and body fonts, saved in this browser.
+- **Download** as PNG, JPG, PDF (print sizes for A4 and A5) or transparent PNG, or as a phone, laptop, tablet or framed-poster mockup. Save and open projects as a file.
+- QR codes use the MIT-licensed `qrcode-generator` library in `vendor/qrcode/`, loaded only when you add a QR code.
+
+## Animate (whiteboard and cartoon explainers)
+`animate.html` makes explainer videos in two styles, which you can mix scene by scene:
+- **Whiteboard drawing:** a hand sketches each item in line art, then it colours in. Text is written line by line, and photos are traced as outlines before they fade in.
+- **Cartoon:** full-colour scenes with characters walking, popping or sliding in, talking mouths and waving arms.
+- **People builder:** design any character with 6 skin tones, 7 hairstyles including a hijab, hair colours, tops (T-shirt, collared shirt, blazer, dress), bottoms, glasses and facial hair; then pick one of 6 poses and 6 expressions. Save characters to reuse in any scene.
+- **30 props** (ideas, charts, money, devices, buildings, symbols and more) and **9 backgrounds** (whiteboard, chalkboard, paper, classroom, office, park, city, night sky).
+- Scenes with lengths and transitions (cut, fade, wipe), music and voiceover tracks, three shapes (16:9, 9:16, 1:1), and export to MP4 or WebM.
+- Save and open projects as a file. All art is drawn in code, so the studio stays small and works offline once loaded.
+
+## Remove silences
+- **Audio studio:** “Remove silences” finds pauses, shows them in red on the waveform, then cuts them with smooth joins. Set the quiet level (or let Booth choose it), the shortest pause to cut, and how much pause to leave.
+- **Video studio:** choose a pace (Natural, Tight or Very tight), then remove silences from one clip or every clip. Clips are split around the pauses, and Undo restores everything.
 
 ## Opening files
 - **Drag and drop anywhere:** drop files anywhere on any studio page, not just the empty area. A large drop target shows what will happen, and files that a studio can’t open are rejected with a short explanation.

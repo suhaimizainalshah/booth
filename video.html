@@ -73,7 +73,7 @@ details.sec>.group{margin-top:.7rem}
 <div class="app">
   <header class="top">
     <a class="brand" href="./" aria-label="Booth home"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><rect x="7" y="7" width="8" height="8" rx="1.5" fill="#fff"/><rect x="17" y="7" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="7" y="17" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="17" y="17" width="8" height="8" rx="1.5" fill="#fff"/></svg><span>Booth</span></a>
-    <nav class="modes" aria-label="Studios"><a href="./">Photo</a><a href="./#batch" class="m-hide">Many photos</a><a href="video.html" aria-current="page">Video</a><a href="audio.html">Audio</a><a href="360.html">360°</a><a href="3d.html">3D</a></nav>
+    <nav class="modes" aria-label="Studios"><a href="./">Photo</a><a href="./#batch" class="m-hide">Many photos</a><a href="design.html">Design</a><a href="video.html" aria-current="page">Video</a><a href="audio.html">Audio</a><a href="animate.html">Animate</a><a href="360.html">360°</a><a href="3d.html">3D</a></nav>
     <span class="spacer"></span>
     <button class="ibtn" id="undo" disabled aria-label="Undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
     <button class="ibtn" id="redo" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -155,6 +155,7 @@ details.sec>.group{margin-top:.7rem}
 <div class="toast" id="toast" role="status"></div>
 <script src="assets/booth-ux.js"></script>
 <script src="assets/sounds.js"></script>
+<script src="assets/recut.js"></script>
 
 <script>
 "use strict";
@@ -485,6 +486,34 @@ const endDrag = e => {
 lanes.addEventListener("pointerup", endDrag); lanes.addEventListener("pointercancel", endDrag);
 
 /* ---------- Editing actions ---------- */
+/* ---------- Remove silences (Recut-style) ---------- */
+const PACES = [["natural", "Natural"], ["tight", "Tight"], ["fast", "Very tight"]];
+const PACE = { natural: { minSilence: .9, keepPause: .4 }, tight: { minSilence: .6, keepPause: .2 }, fast: { minSilence: .35, keepPause: .08 } };
+let recutPace = "tight";
+async function decodedOf(m) {
+  if (!m.decoded) { const ab = await (await fetch(m.url)).arrayBuffer(); const c = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 44100); m.decoded = await c.decodeAudioData(ab); }
+  return m.decoded;
+}
+async function recut(clips) {
+  if (!clips.length) return toast("Add a video with speech first.");
+  const showBusy = on => { $("#busyMsg").textContent = on ? "Finding pauses…" : "Exporting…"; $("#busyNote").hidden = on; $("#cancelExport").hidden = on; $("#busyBar").parentElement.hidden = on; $("#busy").hidden = !on; };
+  showBusy(true); await new Promise(r => setTimeout(r, 30)); let removed = 0, pieces = 0, failed = 0; const before = snap();
+  for (const c of clips) {
+    const m = M(c); let ab;
+    try { ab = await decodedOf(m); } catch { failed++; continue; }
+    const sr = ab.sampleRate, s0 = Math.floor(c.in * sr), s1 = Math.min(ab.length, Math.ceil(c.out * sr));
+    const chs = [...Array(ab.numberOfChannels).keys()].map(k => ab.getChannelData(k).subarray(s0, s1));
+    const opts = { thresholdDb: BoothRecut.autoThreshold(chs, sr), ...PACE[recutPace] };
+    const cuts = BoothRecut.find(chs, sr, opts); if (!cuts.length) continue;
+    const keep = BoothRecut.keep((s1 - s0) / sr, cuts); if (!keep.length) continue;
+    const i = P.clips.indexOf(c), parts = keep.map(([a, b], k) => { const n = JSON.parse(JSON.stringify(c)); n.id = k ? uid() : c.id; n.in = c.in + a; n.out = c.in + b; if (k) n.tr = { type: "none", dur: c.tr?.dur || .6 }; return n; });
+    P.clips.splice(i, 1, ...parts); removed += BoothRecut.total(cuts) / (c.speed || 1); pieces += cuts.length;
+  }
+  showBusy(false);
+  if (!pieces) return toast(failed ? "Couldn’t read the sound in that video." : "No pauses long enough to remove.");
+  hist.push(before); if (hist.length > 80) hist.shift(); fut = []; syncHist(); sel = null; T = 0; renderAll();
+  toast(`Removed ${pieces} pause${pieces > 1 ? "s" : ""}: the video is ${fmt(removed)} shorter`, 4000);
+}
 function split() {
   const s = findSel(); if (!s || sel.type === "audio") return;
   if (sel.type === "text") { if (T <= s.start + .2 || T >= s.end - .2) return toast("Move the playhead inside the text first."); commit(); const b = { ...s, id: uid(), start: T }; s.end = T; P.texts.push(b); sel = { type: "text", id: b.id }; return renderAll(); }
@@ -568,6 +597,8 @@ function renderPane() {
       <div class="row2"><div class="field"><label for="bg">Bar colour</label><input type="color" id="bg" value="${P.bg}"></div><div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="fadeEnds" ${P.fadeEnds ? "checked" : ""}>Fade in and out</label></div></div>
       ${slider("origVol", "Original clip sound", P.origVol, 0, 150, 1, "%")}
       <div class="group"><span class="lbl">Transition between every clip</span><div class="chips">${TRANS.map(([v, l]) => chip("trall", v, "", l)).join("")}</div></div>
+      <div class="group"><span class="lbl">Remove silences from every video clip</span><div class="chips">${PACES.map(([v, l]) => chip("pace", v, recutPace, l)).join("")}</div>
+      <button class="btn primary" data-act="recutAll" style="margin-top:.5rem">Remove silences from all clips</button><p class="note">Finds pauses in what’s said and cuts them out, keeping a natural gap. Undo brings everything back.</p></div>
       <div class="sep"></div><p class="note">Keyboard: Space play, S split, Delete remove, ←/→ step a frame, Shift+←/→ one second, Ctrl+Z undo.</p>`;
   } else if (sel.type === "clip") {
     const m = M(s), first = P.clips[0] === s;
@@ -579,6 +610,7 @@ function renderPane() {
     h += sec("trans", "Transition in", first ? `<p class="note">The first clip has nothing before it. Use “Fade in and out” in the video settings instead.</p>` : `<div class="chips">${TRANS.map(([v, l]) => chip("tr", v, s.tr?.type || "none", l)).join("")}</div>${slider("trDur", "Length", (s.tr?.dur || .6).toFixed(1), .2, 2, .1, " s")}<button class="btn" data-act="trall">Use on every clip</button>`);
     h += sec("look", "Colour and look", `<div class="chips">${LOOKS.map(([v, l]) => chip("look", v, s.look, l)).join("")}</div>${slider("cBri", "Brightness", s.bri, -50, 50, 1)}${slider("cCon", "Contrast", s.con, -50, 50, 1)}${slider("cSat", "Saturation", s.sat, -100, 100, 1)}`);
     h += sec("frame", "Zoom, position and rotate", `${slider("cZoom", "Zoom", (+s.zoom).toFixed(2), 1, 3, .05, "×")}${slider("cPx", "Move left or right", s.px, -50, 50, 1)}${slider("cPy", "Move up or down", s.py, -50, 50, 1)}<div class="row3"><button class="btn" data-act="rot">Rotate 90°</button><button class="btn" data-act="flip">Mirror</button><button class="btn" data-act="reframe">Reset</button></div>`);
+    if (m.kind === "video") h += sec("recut", "Remove silences", `<div class="chips">${PACES.map(([v, l]) => chip("pace", v, recutPace, l)).join("")}</div><button class="btn primary" data-act="recutOne" style="margin-top:.5rem">Remove silences from this clip</button><p class="note">Splits the clip around pauses and drops the quiet parts.</p>`);
     if (m.kind === "video") h += sec("audio", "Sound", `${slider("cVol", "Volume", s.vol, 0, 150, 1, "%")}<div class="row2">${slider("cAfIn", "Fade in", s.afIn, 0, 5, .1, " s")}${slider("cAfOut", "Fade out", s.afOut, 0, 5, .1, " s")}</div>${afxSelect("cAfx", s.afx)}<button class="btn" data-act="detach">Detach sound to audio lane</button><p class="note">“Remove vocals” works on many stereo songs by cancelling sound panned to the centre. It isn’t perfect, but it’s free and instant.</p>`);
     h += `<div class="row2"><button class="btn" data-act="split">Split</button><button class="btn" data-act="dup">Duplicate</button><button class="btn" data-act="freeze">Freeze frame</button><button class="btn danger" data-act="del">Delete</button></div>`;
   } else if (sel.type === "text") {
@@ -613,8 +645,10 @@ pane.addEventListener("click", e => {
     flip: () => { commit(); s.flip = !s.flip; draw(T); }, reframe: () => { commit(); Object.assign(s, { zoom: 1, px: 0, py: 0, rot: 0, flip: false }); renderPane(); draw(T); },
     creditHelp: () => window.BoothSounds.open({ title: (media.get(s.mid)?.name || "").replace(/\.[^.]+$/, "") }),
     creditEnd: () => { if (!s.credit) return toast("Add the credit first, or use the credit helper."); addCreditText(s.credit); },
+    recutOne: () => recut([s]), recutAll: () => recut(P.clips.filter(c => M(c)?.kind === "video")),
     fitlen: () => { commit(); s.start = 0; s.len = Math.min(total(), media.get(s.mid).dur - s.trimIn); renderAll(); } };
   if (b.dataset.act) return acts[b.dataset.act]?.();
+  if (b.dataset.pace) { recutPace = b.dataset.pace; return renderPane(); }
   if (b.dataset.aspect) { commit(); P.aspect = b.dataset.aspect; sizeCanvas(); renderPane(); }
   if (b.dataset.res) { commit(); P.res = +b.dataset.res; sizeCanvas(); renderPane(); }
   if (b.dataset.fit) { commit(); P.fit = b.dataset.fit; endCache.clear(); renderPane(); draw(T); }
