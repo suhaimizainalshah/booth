@@ -71,6 +71,24 @@ About trending sounds and copyright: naming a song in a caption or a file's deta
 - **Download** as PNG, JPG, PDF (print sizes for A4 and A5) or transparent PNG, or as a phone, laptop, tablet or framed-poster mockup. Save and open projects as a file.
 - QR codes use the MIT-licensed `qrcode-generator` library in `vendor/qrcode/`, loaded only when you add a QR code.
 
+## Lessons (interactive video lessons)
+`lesson.html` turns any video into a lesson, similar to Edpuzzle, without student accounts or servers.
+- **Use a video file** (the lesson works offline) **or a YouTube link** (a tiny lesson file; students need internet).
+- **Add, at any moment:** multiple-choice questions (one or several correct answers, feedback for right and wrong), open questions, polls and pop-up notes with an optional link.
+- **Settings:** stop skipping ahead, “watch that part again”, up to three tries, show correct answers, shuffle answer order, ask for name and class, hand-in instructions, captions (.vtt or .srt) for video-file lessons, and a pass mark for SCORM.
+- **Student interface in six languages:** English, Bahasa Melayu, Chinese, Tamil, Bahasa Indonesia and Vietnamese.
+- **Students can pick up where they left off:** progress is saved on their device.
+- **Preview as a student** before sharing.
+
+### Ways to share and collect answers
+- **Student lesson file:** one HTML file (YouTube) or a ZIP with `lesson.html` and the video. Students hand in an answers file, an answers code, an email to the teacher’s address (opens their email app with a summary and the code), or automatically to the teacher’s own Google Sheet through the provided Apps Script, which can also email each submission.
+- **SCORM 1.2 package:** for Moodle, Canvas, Blackboard, Brightspace and offline Moodle devices. Reports the student’s score, pass or fail against the pass mark, time spent and each answer as a SCORM interaction.
+- **Singapore Student Learning Space (SLS) package:** for video-file lessons. A ZIP with `index.html` at the root, the video and the ADL xAPI Wrapper v1.11.0 (Apache 2.0 licence, in `vendor/xapi/`), following MOE’s published method for HTML5 content. Upload it as an Integrated Scorable Response question and set the maximum marks to the number of multiple-choice questions; the score is the number answered correctly. SLS packages must stay under 500 MB and can’t use YouTube.
+- **Embed on a website:** after putting the student lesson file online, copy an embed code; YouTube lessons can also be pasted whole into Google Sites.
+
+### Results
+Add answers files or codes to see each student’s score and how much they watched, the class’s answers to every question (questions under 60% are flagged), all written answers, and a CSV download. Files changed after a student finished are flagged as possibly edited. Results stay in the browser tab.
+
 ## Animate (whiteboard and cartoon explainers)
 `animate.html` makes explainer videos in two styles, which you can mix scene by scene:
 - **Whiteboard drawing:** a hand sketches each item in line art, then it colours in. Text is written line by line, and photos are traced as outlines before they fade in.
@@ -79,6 +97,13 @@ About trending sounds and copyright: naming a song in a caption or a file's deta
 - **30 props** (ideas, charts, money, devices, buildings, symbols and more) and **9 backgrounds** (whiteboard, chalkboard, paper, classroom, office, park, city, night sky).
 - Scenes with lengths and transitions (cut, fade, wipe), music and voiceover tracks, three shapes (16:9, 9:16, 1:1), and export to MP4 or WebM.
 - Save and open projects as a file. All art is drawn in code, so the studio stays small and works offline once loaded.
+
+### Realistic drawing (Animate)
+- **Stroke-by-stroke handwriting:** three single-line pen fonts (casual, script and print), adapted from the EMS fonts by Evil Mad Scientist Laboratories (SIL Open Font License; licence text is kept at the top of each file in `vendor/strokefonts/`). The hand writes each letter along its real strokes.
+- **Shape-following drawing:** characters and props are drawn along their actual outlines in order, then the colour fades in.
+- **Import SVG illustrations** (for example Open Peeps, Humaaans or unDraw, which are free to use): the hand traces every path of the drawing.
+- **Hands:** marker, pen or chalk in six skin tones, your own hand photo (PNG with transparency, with adjustable pen-tip position), or no hand.
+- **Full HD 1080p** export by default, or HD 720p for smaller files.
 
 ## Remove silences
 - **Audio studio:** “Remove silences” finds pauses, shows them in red on the waveform, then cuts them with smooth joins. Set the quiet level (or let Booth choose it), the shortest pause to cut, and how much pause to leave.

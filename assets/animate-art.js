@@ -16,11 +16,14 @@
   const DEFAULT_LOOK = { skin: 1, hair: "short", hairColor: 0, top: "tshirt", topColor: 0, bottom: "trousers", bottomColor: 5, glasses: "none", beard: "none" };
 
   // Paint helper: fill + outline in colour mode, outline only in line mode
+  // Colour mode: fill, a soft outline, then gentle shading on the right half, as if lit from the left
+  const OUTLINE = "#2B2420";
   function painter(c, mode, lw = 5) {
     return (fill, stroke = INK, w = lw) => {
       if (mode === "line") { c.lineWidth = w * 1.1; c.strokeStyle = INK; c.stroke(); return; }
       if (fill) { c.fillStyle = fill; c.fill(); }
-      if (stroke) { c.lineWidth = w; c.strokeStyle = stroke; c.stroke(); }
+      if (stroke) { c.lineWidth = w * .78; c.strokeStyle = stroke === INK ? OUTLINE : stroke; c.stroke(); }
+      if (fill && c.clip && !c.isRecorder) { c.save(); c.clip(); c.globalCompositeOperation = "multiply"; c.fillStyle = "rgba(60,40,30,.13)"; c.fillRect(6, -420, 420, 560); c.globalCompositeOperation = "source-over"; c.fillStyle = "rgba(255,255,255,.10)"; c.fillRect(-420, -420, 380, 560); c.restore(); }
     };
   }
   const rr = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect(x, y, w, h, r); };
@@ -50,6 +53,8 @@
     const t = o.t || 0, pose = POSES[o.pose] ? JSON.parse(JSON.stringify(POSES[o.pose])) : POSES.stand;
     if (o.pose === "wave") pose.R[1] = 25 + Math.sin(t * 9) * 22;
     const dress = L.top === "dress";
+    // soft ground shadow
+    if (mode !== "line" && !c.isRecorder) { c.save(); c.beginPath(); c.ellipse(0, 2, 70, 12, 0, 0, Math.PI * 2); c.fillStyle = "rgba(20,20,30,.16)"; c.fill(); c.restore(); }
     // legs and shoes
     const legC = dress || L.bottom !== "trousers" ? skin : bottom;
     [-1, 1].forEach(s => { rr(c, s > 0 ? 5 : -27, -112, 22, 104, 10); F(legC, INK, 4.5); c.beginPath(); c.ellipse(s * 20, -6, 22, 10, 0, 0, Math.PI * 2); F("#2D3748", INK, 4); });
@@ -159,11 +164,12 @@
   const isDark = name => name === "chalkboard" || name === "night";
 
   /* ---------- Drawing hand (pen tip at 0,0) ---------- */
-  function hand(c, skin = SKIN[1]) {
-    c.save(); c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = INK; c.lineWidth = 4;
+  function hand(c, skin = SKIN[1], tool = "marker") {
+    c.save(); c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = OUTLINE; c.lineWidth = 3;
     c.rotate(-0.55);
-    rr(c, -7, -6, 14, 86, 5); c.fillStyle = "#1b1f24"; c.fill(); c.beginPath(); c.moveTo(-6, -6); c.lineTo(0, -16); c.lineTo(6, -6); c.fill();
-    rr(c, -8, 52, 16, 30, 4); c.fillStyle = "#E0412B"; c.fill();
+    if (tool === "pen") { rr(c, -4, -2, 8, 96, 4); c.fillStyle = "#CBD5E0"; c.fill(); c.stroke(); c.beginPath(); c.moveTo(-4, -2); c.lineTo(0, -16); c.lineTo(4, -2); c.closePath(); c.fillStyle = "#4A5568"; c.fill(); rr(c, -5, 60, 10, 30, 3); c.fillStyle = "#2B6CB0"; c.fill(); }
+    else if (tool === "chalk") { rr(c, -7, -10, 14, 60, 4); c.fillStyle = "#F7FAFC"; c.fill(); c.stroke(); }
+    else { rr(c, -7, -6, 14, 86, 5); c.fillStyle = "#1b1f24"; c.fill(); c.beginPath(); c.moveTo(-6, -6); c.lineTo(0, -16); c.lineTo(6, -6); c.fill(); rr(c, -8, 52, 16, 30, 4); c.fillStyle = "#E0412B"; c.fill(); }
     c.beginPath(); c.ellipse(16, 70, 30, 40, -0.2, 0, Math.PI * 2); c.fillStyle = skin; c.fill(); c.stroke();
     c.beginPath(); c.ellipse(-8, 46, 13, 22, 0.3, 0, Math.PI * 2); c.fill(); c.stroke();
     rr(c, -6, 100, 64, 120, 18); c.fillStyle = "#2B6CB0"; c.fill(); c.stroke();

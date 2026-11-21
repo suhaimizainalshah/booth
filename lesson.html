@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Booth Lessons: interactive video lessons with questions</title>
+<meta name="description" content="Add questions, polls and notes to any video. Students answer as it plays, and you see the results. Free, with no student accounts.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23E0412B'/><path d='M12 10v12l10-6z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/booth.css">
+<style>
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.work{display:grid;grid-template-columns:1fr var(--side);min-height:0}
+.stage{min-height:0;overflow:auto;background:var(--stage);padding:16px;display:grid;gap:12px;align-content:start}
+.vid{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;max-height:58vh;width:100%;margin:0 auto}
+.vid video,.vid iframe,.vid>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+.tl{position:relative;height:46px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.tl i{position:absolute;top:0;bottom:0;width:2px;background:var(--accent)}
+.tl b{position:absolute;top:8px;width:22px;height:28px;margin-left:-11px;border-radius:6px;background:var(--ink);color:var(--panel);font-size:.72rem;display:grid;place-items:center;font-weight:800}
+.tl b[aria-current=true]{background:var(--accent)}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.tbtn{display:inline-flex}
+.qlist{display:grid;gap:.35rem}
+.qi{display:grid;grid-template-columns:auto 1fr auto;gap:.5rem;align-items:center;padding:.45rem .6rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-align:left;font-weight:600;font-size:.88rem}
+.qi[aria-current=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.qi small{color:var(--muted);font-weight:600}
+.tag{font-size:.7rem;font-weight:800;padding:.15rem .4rem;border-radius:6px;background:var(--soft)}
+.chrow{display:grid;grid-template-columns:auto 1fr auto;gap:.4rem;align-items:center;margin-bottom:.35rem}
+.chrow input[type=text]{min-width:0}
+.tabs{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--soft);margin-bottom:.6rem}
+.tabs button{flex:1;height:34px;border:0;border-radius:8px;background:transparent;font-weight:700;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.res{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;display:grid;gap:.8rem}
+.res table{border-collapse:collapse;width:100%;font-size:.88rem}.res th,.res td{text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--line)}
+.bars{display:grid;gap:.3rem}.bars div{display:grid;grid-template-columns:minmax(90px,1fr) 3fr auto;gap:.5rem;align-items:center;font-size:.85rem}
+.bars span.b{height:12px;border-radius:6px;background:var(--soft);overflow:hidden}.bars span.b i{display:block;height:100%;background:var(--accent)}
+.empty-wrap{position:absolute;inset:0;display:grid;place-items:center;background:var(--stage);z-index:2;padding:1rem;overflow:auto}
+.preview{position:fixed;inset:0;z-index:60;background:rgba(10,12,14,.7);display:grid;place-items:center;padding:2vh 2vw}
+.preview>div{width:min(1100px,96vw);height:min(760px,94vh);background:#fff;border-radius:14px;overflow:hidden;display:grid;grid-template-rows:auto 1fr}
+.preview header{display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--line);background:var(--panel)}
+.preview iframe{width:100%;height:100%;border:0}
+@media (max-width:860px){.work{grid-template-columns:1fr}.side{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<a class="skip" href="#pane">Skip to tools</a>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="./" aria-label="Booth home"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><rect x="7" y="7" width="8" height="8" rx="1.5" fill="#fff"/><rect x="17" y="7" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="7" y="17" width="8" height="8" rx="1.5" fill="#fff" opacity=".7"/><rect x="17" y="17" width="8" height="8" rx="1.5" fill="#fff"/></svg><span>Booth</span></a>
+    <nav class="modes" aria-label="Studios"><a href="./">Photo</a><a href="design.html">Design</a><a href="video.html">Video</a><a href="audio.html">Audio</a><a href="animate.html">Animate</a><a href="lesson.html" aria-current="page">Lessons</a><a href="360.html">360°</a><a href="3d.html">3D</a></nav>
+    <span class="spacer"></span>
+    <button class="ibtn" id="saveBtn" title="Save the lesson so you can edit it later"><span class="t">Save</span></button>
+    <button class="ibtn" id="openBtn" title="Open a saved lesson"><span class="t">Open</span></button>
+    <button class="ibtn" id="previewBtn"><span class="t">Preview as a student</span></button>
+    <button class="btn primary" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="t">Get the student lesson</span></button>
+  </header>
+  <div class="work">
+    <main class="stage" id="stage">
+      <div class="vid" id="vid"></div>
+      <div class="row"><button class="btn" id="playBtn">Play</button><span id="tNow" style="font-weight:700;font-variant-numeric:tabular-nums">0:00</span><span class="hint" style="margin:0">Pause where you want something to happen, then add it.</span></div>
+      <div class="tl" id="tl" aria-label="Lesson timeline: click to jump"><i id="tlHead"></i></div>
+      <div class="row"><button class="btn primary" data-addq="mc">+ Multiple choice</button><button class="btn" data-addq="open">+ Open question</button><button class="btn" data-addq="poll">+ Poll</button><button class="btn" data-addq="note">+ Pop-up note</button></div>
+      <div id="results" hidden></div>
+      <div class="empty-wrap" id="empty"><div class="empty" style="max-width:640px">
+        <h1>Turn any video into a lesson</h1>
+        <p>Add questions, polls and notes at the right moments. The video pauses for each one, students answer, and you see who understood what. No student accounts, and answers stay with you and your students.</p>
+        <div class="row" style="justify-content:center"><button class="btn primary" id="pickVideo">Use a video file</button><button class="btn" id="useYT">Use a YouTube video</button></div>
+        <div class="row" style="justify-content:center"><button class="btn" id="openResults">See class results</button><button class="btn" id="openLesson">Open a saved lesson</button></div>
+        <p class="note">A video file makes a lesson that works offline. A YouTube lesson is a tiny file, but students need internet.</p>
+      </div></div>
+    </main>
+    <aside class="side"><section class="pane" id="pane"></section></aside>
+  </div>
+</div>
+<input type="file" id="vidIn" accept="video/*" hidden><input type="file" id="capIn" accept=".vtt,.srt,text/vtt" hidden><input type="file" id="projIn" accept=".json" hidden><input type="file" id="resIn" accept=".json,.txt" multiple hidden>
+<dialog id="exportDlg"><div class="dlg" style="max-width:560px"><h2>Get the student lesson</h2>
+  <div class="group"><button class="btn primary block" data-ex="student">Student lesson file: share it, email it or put it on a website</button><p class="note">Students hand in with a file, a code, email or your Google Sheet.</p></div>
+  <div class="group"><button class="btn block" data-ex="scorm">SCORM package: for Moodle, Canvas, Blackboard and offline boxes</button><p class="note">Scores and answers go straight into the platform’s gradebook, including on offline Moodle devices such as Beekee.</p></div>
+  <div class="group"><button class="btn block" id="sls" data-ex="sls">Singapore Student Learning Space (SLS) package</button><p class="note" id="slsNote"></p></div>
+  <details class="sec"><summary>Embed it on a website</summary><div class="group"><p class="note">Put the student lesson file online (your school website, GitHub Pages or Netlify Drop all work), then paste its address here for embed code.</p><div class="field"><label for="embedUrl">Lesson web address</label><input type="url" id="embedUrl" placeholder="https://…/lesson.html"></div><button class="btn" data-ex="embedURL">Copy embed code</button><p class="note">For YouTube lessons on Google Sites, you can paste the whole lesson instead:</p><button class="btn" data-ex="embedHTML">Copy the lesson as embed code</button></div></details>
+  <div style="display:flex;justify-content:flex-end;margin-top:.6rem"><button class="btn" id="exClose">Close</button></div></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+<script src="assets/booth-ux.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)], uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+function toast(m, ms = 3000) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), ms); }
+function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000); }
+const COUNTER = { on: true, ns: "booth-photo-editor" };
+const count = k => { if (!COUNTER.on || !/^https?:$/.test(location.protocol) || navigator.doNotTrack === "1" || navigator.globalPrivacyControl) return; fetch(`https://abacus.jasoncameron.dev/hit/${COUNTER.ns}/${k}`).catch(() => {}); };
+try { if (!sessionStorage.getItem("booth-lesson-visit")) { sessionStorage.setItem("booth-lesson-visit", "1"); count("lesson_visits"); } } catch {}
+
+/* ---------- Lesson model ---------- */
+let L = null, sel = null, videoFile = null, videoURL = null, P = null, tab = "lesson";
+const newLesson = () => ({ id: uid() + uid(), title: "Untitled lesson", intro: "", items: [], noSkip: true, retries: false, showAnswers: true, rewatch: true, askName: true, askClass: false, handIn: "Download your answers and hand them in, or copy the code and paste it where your teacher asked.", sheet: "", email: "", lang: "en", shuffle: false, pass: 60, yt: "", videoName: "" });
+let captions = null; // WebVTT text for video-file lessons
+const q = () => L?.items.find(x => x.id === sel) || null;
+const sorted = () => [...L.items].sort((a, b) => a.t - b.t);
+
+/* ---------- Video: a file or YouTube ---------- */
+function useFile(f) {
+  videoFile = f; if (videoURL) URL.revokeObjectURL(videoURL); videoURL = URL.createObjectURL(f);
+  if (!L) L = newLesson(); L.yt = ""; L.videoName = f.name; if (L.title === "Untitled lesson") L.title = f.name.replace(/\.[^.]+$/, "");
+  $("#vid").innerHTML = `<video id="v" src="${videoURL}" playsinline controls></video>`; const v = $("#v");
+  P = { time: () => v.currentTime, dur: () => v.duration || 0, seek: t => (v.currentTime = t), play: () => v.play(), pause: () => v.pause(), paused: () => v.paused };
+  v.addEventListener("loadedmetadata", renderAll); begin();
+}
+function ytId(u) { const m = String(u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : /^[\w-]{11}$/.test(u) ? u : null; }
+let ytReady = null;
+function useYT(id) {
+  if (!L) L = newLesson(); L.yt = id; videoFile = null; $("#vid").innerHTML = `<div id="yt"></div>`;
+  ytReady ||= new Promise(r => { window.onYouTubeIframeAPIReady = r; const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(s); });
+  ytReady.then(() => { const p = new YT.Player("yt", { videoId: id, host: "https://www.youtube-nocookie.com", playerVars: { rel: 0, playsinline: 1 }, events: { onReady: () => { P = { time: () => p.getCurrentTime() || 0, dur: () => p.getDuration() || 0, seek: t => p.seekTo(t, true), play: () => p.playVideo(), pause: () => p.pauseVideo(), paused: () => p.getPlayerState() !== 1 }; renderAll(); } } }); });
+  begin();
+}
+function begin() { $("#empty").hidden = true; tab = "lesson"; renderAll(); }
+$("#pickVideo").onclick = () => $("#vidIn").click();
+$("#vidIn").onchange = () => { const f = $("#vidIn").files[0]; $("#vidIn").value = ""; if (f) useFile(f); };
+$("#useYT").onclick = () => { const u = prompt("Paste the YouTube link"); if (!u) return; const id = ytId(u.trim()); if (!id) return toast("That doesn’t look like a YouTube link."); useYT(id); };
+$("#playBtn").onclick = () => { if (!P) return; P.paused() ? P.play() : P.pause(); };
+setInterval(() => { if (!P) return; const t = P.time(), d = P.dur(); $("#tNow").textContent = `${fmt(t)}${d ? " / " + fmt(d) : ""}`; $("#tlHead").style.left = d ? `${t / d * 100}%` : "0"; $("#playBtn").textContent = P.paused() ? "Play" : "Pause"; }, 250);
+$("#tl").addEventListener("click", e => { if (!P) return; const b = e.target.closest("b"); if (b) { sel = b.dataset.q; const it = q(); P.seek(it.t); P.pause(); return renderAll(); } const r = $("#tl").getBoundingClientRect(); P.seek((e.clientX - r.left) / r.width * P.dur()); });
+function renderTimeline() { const d = P?.dur() || 0; $("#tl").querySelectorAll("b").forEach(b => b.remove()); if (!d) return; sorted().forEach((it, i) => { const b = document.createElement("b"); b.dataset.q = it.id; b.textContent = i + 1; b.style.left = `${it.t / d * 100}%`; b.title = `${fmt(it.t)} ${it.prompt || it.text || ""}`; b.setAttribute("aria-current", it.id === sel); $("#tl").appendChild(b); }); }
+
+/* ---------- Adding and editing questions ---------- */
+$$("[data-addq]").forEach(b => b.onclick = () => {
+  if (!P) return toast("Add a video first."); P.pause(); const type = b.dataset.addq, t = Math.round(P.time() * 10) / 10;
+  const it = { id: uid(), type, t, prompt: "", required: true };
+  if (type === "mc") Object.assign(it, { prompt: "", choices: [{ text: "", ok: true }, { text: "", ok: false }, { text: "", ok: false }], fbOk: "", fbNo: "" });
+  if (type === "poll") Object.assign(it, { choices: [{ text: "Yes" }, { text: "No" }, { text: "Not sure" }] });
+  if (type === "note") Object.assign(it, { prompt: "", text: "", link: "" });
+  L.items.push(it); sel = it.id; tab = "lesson"; renderAll(); setTimeout(() => $("#qPrompt")?.focus(), 30);
+});
+const chk = (id, label, on) => `<label class="check"><input type="checkbox" id="${id}" ${on ? "checked" : ""}> ${label}</label>`;
+function renderPane() {
+  const pane = $("#pane"); if (!L) { pane.innerHTML = `<h2>Lessons</h2><p class="hint">Choose a video to start, or open class results.</p>`; return; }
+  const it = q(); let h = `<div class="tabs" role="tablist"><button role="tab" data-tab="lesson" aria-selected="${tab === "lesson"}">Lesson</button><button role="tab" data-tab="results" aria-selected="${tab === "results"}">Results</button></div>`;
+  if (tab === "results") h += `<p class="hint">Add the answers files your students handed in, or paste their answer codes.</p><button class="btn primary" id="addRes">Add answers files</button><div class="field"><label for="codes">Or paste answer codes, one per line</label><textarea id="codes" rows="4" placeholder="BL1.…"></textarea></div><button class="btn" id="addCodes">Add codes</button>${R.length ? `<button class="btn" id="csv">Download results as a spreadsheet (CSV)</button><button class="btn danger" id="clearRes">Clear results</button>` : ""}<p class="note">Results stay in this browser tab and aren’t uploaded anywhere.</p>`;
+  else if (!it) h += `<h2>Lesson settings</h2>
+    <div class="field"><label for="lTitle">Title</label><input type="text" id="lTitle" value="${esc(L.title)}"></div>
+    <div class="field"><label for="lIntro">Instructions for students (optional)</label><textarea id="lIntro" rows="2">${esc(L.intro)}</textarea></div>
+    ${chk("lNoSkip", "Don’t let students skip ahead", L.noSkip)}${chk("lRewatch", "Offer “watch that part again”", L.rewatch)}${chk("lRetries", "Allow up to 3 tries on multiple choice", L.retries)}${chk("lShow", "Show the correct answer after each question", L.showAnswers)}${chk("lName", "Ask for the student’s name at the start", L.askName)}${chk("lClass", "Also ask for their class", L.askClass)}${chk("lShuffle", "Shuffle the answer order for each student", L.shuffle)}
+    <div class="row2"><div class="field"><label for="lLang">Language for students</label><select id="lLang">${[["en", "English"], ["ms", "Bahasa Melayu"], ["zh", "中文"], ["ta", "தமிழ்"], ["id", "Bahasa Indonesia"], ["vi", "Tiếng Việt"]].map(([v, n]) => `<option value="${v}" ${L.lang === v ? "selected" : ""}>${n}</option>`).join("")}</select></div><div class="field"><label for="lPass">Pass mark for SCORM (%)</label><input type="number" id="lPass" min="0" max="100" value="${L.pass ?? 60}"></div></div>
+    ${!L.yt ? `<div class="field"><label>Captions (optional)</label><button class="btn" id="capBtn">${captions ? "Change captions file" : "Add captions (.vtt or .srt)"}</button>${captions ? `<p class="note">Captions added.</p>` : ""}</div>` : ""}
+    <div class="field"><label for="lEmail">Your email, for students to email their answers (optional)</label><input type="email" id="lEmail" placeholder="teacher@school.edu" value="${esc(L.email || "")}"></div>
+    <div class="field"><label for="lHand">How students hand in (shown at the end)</label><textarea id="lHand" rows="2">${esc(L.handIn)}</textarea></div>
+    <details class="sec"><summary>Collect answers automatically (optional)</summary><div class="group"><p class="note">Answers can arrive straight in your own Google Sheet. In a new sheet, open Extensions, then Apps Script, paste this code, choose Deploy, New deployment, Web app, with access for Anyone, and paste the web app address below.</p><textarea rows="6" readonly id="gsCode" style="font-family:ui-monospace,monospace;font-size:.75rem">${esc(GS)}</textarea><button class="btn" id="copyGs">Copy the code</button><div class="field"><label for="lSheet">Web app address</label><input type="url" id="lSheet" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(L.sheet)}"></div><p class="note">Tell students their name and answers go to your sheet. Students can still download their answers as a backup.</p></div></details>
+    ${L.items.length ? `<span class="lbl">In this lesson</span><div class="qlist">${sorted().map((x, i) => `<button class="qi" data-pick="${x.id}"><span class="tag">${i + 1}</span><span>${esc(x.prompt || x.text || "(no question yet)").slice(0, 60)}</span><small>${fmt(x.t)}</small></button>`).join("")}</div>` : `<p class="note">No questions yet. Play the video, pause, then use the buttons under the timeline.</p>`}`;
+  else {
+    const kind = { mc: "Multiple choice", open: "Open question", poll: "Poll", note: "Pop-up note" }[it.type];
+    h += `<h2>${kind}</h2><div class="row2"><div class="field"><label for="qT">Appears at (seconds)</label><input type="number" id="qT" min="0" step="0.1" value="${it.t}"></div><div class="field"><label>&nbsp;</label><button class="btn" id="qNow">Use current time</button></div></div>
+      <div class="field"><label for="qPrompt">${it.type === "note" ? "Heading" : "Question"}</label><textarea id="qPrompt" rows="2">${esc(it.prompt)}</textarea></div>`;
+    if (it.type === "note") h += `<div class="field"><label for="qText">Text</label><textarea id="qText" rows="4">${esc(it.text)}</textarea></div><div class="field"><label for="qLink">Link (optional)</label><input type="url" id="qLink" value="${esc(it.link)}"></div>`;
+    if (it.type === "mc" || it.type === "poll") h += `<span class="lbl">${it.type === "mc" ? "Answers: tick every correct one" : "Options"}</span>${it.choices.map((c, i) => `<div class="chrow">${it.type === "mc" ? `<input type="checkbox" data-ok="${i}" ${c.ok ? "checked" : ""} aria-label="Answer ${i + 1} is correct">` : `<span class="tag">${i + 1}</span>`}<input type="text" data-ch="${i}" value="${esc(c.text)}" placeholder="Answer ${i + 1}"><button class="ibtn" data-delch="${i}" aria-label="Remove answer ${i + 1}">✕</button></div>`).join("")}${it.choices.length < 6 ? `<button class="btn" id="addCh">Add an answer</button>` : ""}`;
+    if (it.type === "mc") h += `<div class="field"><label for="qOk">Feedback when right (optional)</label><input type="text" id="qOk" value="${esc(it.fbOk)}"></div><div class="field"><label for="qNo">Feedback when wrong (optional)</label><input type="text" id="qNo" value="${esc(it.fbNo)}" placeholder="For example: Watch the part about…"></div>`;
+    if (it.type === "open") h += chk("qReq", "Students must write something", it.required !== false);
+    h += `<div class="row3"><button class="btn" id="qDup">Duplicate</button><button class="btn danger" id="qDel">Delete</button><button class="btn primary" id="qDone">Done</button></div>`;
+  }
+  pane.innerHTML = h; renderTimeline();
+}
+$("#pane").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return; const it = q();
+  if (b.dataset.tab) { tab = b.dataset.tab; sel = null; return renderAll(); }
+  if (b.dataset.pick) { sel = b.dataset.pick; P?.seek(q().t); P?.pause(); return renderAll(); }
+  if (b.dataset.delch != null && it) { if (it.choices.length <= 2) return toast("Keep at least two answers."); it.choices.splice(+b.dataset.delch, 1); return renderPane(); }
+  const act = { addCh: () => { it.choices.push({ text: "", ok: false }); renderPane(); }, qNow: () => { it.t = Math.round(P.time() * 10) / 10; renderAll(); }, qDel: () => { L.items = L.items.filter(x => x !== it); sel = null; renderAll(); }, qDup: () => { const c = JSON.parse(JSON.stringify(it)); c.id = uid(); c.t += 2; L.items.push(c); sel = c.id; renderAll(); }, qDone: () => { sel = null; renderAll(); },
+    capBtn: () => $("#capIn").click(),
+    copyGs: async () => { try { await navigator.clipboard.writeText(GS); toast("Code copied"); } catch { $("#gsCode").select(); } }, addRes: () => $("#resIn").click(), addCodes: () => { addCodes($("#codes").value); }, csv: csvOut, clearRes: () => { R.length = 0; renderAll(); } };
+  act[b.id]?.();
+});
+$("#pane").addEventListener("input", e => {
+  const el = e.target, it = q(), v = el.value, on = el.checked;
+  if (el.dataset.ch != null) { it.choices[+el.dataset.ch].text = v; return; } if (el.dataset.ok != null) { it.choices[+el.dataset.ok].ok = on; return; }
+  ({ lTitle: () => L.title = v, lIntro: () => L.intro = v, lNoSkip: () => L.noSkip = on, lRewatch: () => L.rewatch = on, lRetries: () => L.retries = on, lShow: () => L.showAnswers = on, lName: () => L.askName = on, lClass: () => L.askClass = on, lHand: () => L.handIn = v, lSheet: () => L.sheet = v.trim(), lShuffle: () => L.shuffle = on, lLang: () => L.lang = v, lPass: () => L.pass = Math.max(0, Math.min(100, +v || 0)), lEmail: () => L.email = v.trim(),
+    qT: () => { it.t = Math.max(0, +v || 0); renderTimeline(); }, qPrompt: () => { it.prompt = v; renderTimeline(); }, qText: () => it.text = v, qLink: () => it.link = v, qOk: () => it.fbOk = v, qNo: () => it.fbNo = v, qReq: () => it.required = on })[el.id]?.();
+});
+function renderAll() { renderPane(); renderResults(); }
+
+/* ---------- Preview and export ---------- */
+const GS = `var EMAIL = ""; // optional: your email address, to get each submission by email too
+
+function doPost(e) {
+  var d = JSON.parse(e.postData.contents);
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  if (sh.getLastRow() === 0) sh.appendRow(["Received", "Lesson", "Student", "Class", "Score", "Out of", "Watched %", "Answers"]);
+  sh.appendRow([new Date(), d.lesson.title, d.student.name, d.student.cls, d.score.correct, d.score.gradable, d.watched,
+    d.answers.map(function (a) { return a.prompt + ": " + (a.answer === null ? "(skipped)" : [].concat(a.answer).join(", ")) + (a.correct === null ? "" : a.correct ? " ✓" : " ✗"); }).join("\\n")]);
+  if (EMAIL) MailApp.sendEmail(EMAIL, d.lesson.title + ": " + d.student.name + " (" + d.score.correct + "/" + d.score.gradable + ")",
+    d.answers.map(function (a) { return a.prompt + "\n   " + (a.answer === null ? "(skipped)" : [].concat(a.answer).join(", ")); }).join("\n"));
+  return ContentService.createTextOutput("ok");
+}`;
+const PLAYER_CSS = `*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#F4F5F7;color:#1B1F24;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.8rem 1.2rem;background:#fff;border-bottom:1px solid #E2E5EA}header h1{font-size:1.1rem;margin:0}#score{font-weight:700;color:#1E7B4C}
+main{max-width:1000px;margin:0 auto;padding:1rem}.stage{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+#media,#media video,#media iframe,#media>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+.card-wrap{position:absolute;inset:0;background:rgba(10,12,16,.55);display:grid;place-items:center;padding:1rem;overflow:auto}
+.card{background:#fff;border-radius:14px;padding:1.2rem 1.3rem;width:min(560px,100%);max-height:100%;overflow:auto;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
+.card h2{margin:.1rem 0 .8rem;font-size:1.2rem}.kind{margin:0;color:#5A646E;font-size:.8rem;font-weight:700;text-transform:none}
+.choices{display:grid;gap:.45rem}.choice{display:flex;gap:.6rem;align-items:center;padding:.6rem .75rem;border:2px solid #E2E5EA;border-radius:10px;cursor:pointer}
+.choice:has(input:checked){border-color:#2B6CB0;background:#EBF4FF}.choice.right,.choice.right:has(input:checked){border-color:#1E7B4C;background:#E6F6EC}.choice.wrong,.choice.wrong:has(input:checked){border-color:#C2362B;background:#FDECEA}
+textarea,input:not([type=radio]):not([type=checkbox]){width:100%;font:inherit;padding:.6rem .7rem;border:2px solid #E2E5EA;border-radius:10px}
+.field{display:grid;gap:.3rem;margin:.6rem 0;font-weight:600}.actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}.actions.wrap{flex-wrap:wrap;justify-content:flex-start}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:.65rem 1rem;background:#2B6CB0;color:#fff;cursor:pointer}button.ghost{background:#EDF0F3;color:#1B1F24}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #F6C744;outline-offset:2px}
+.fb{min-height:1.2em;margin:.7rem 0 0}.ok{color:#1E7B4C}.no{color:#C2362B}.small,.hint{color:#5A646E;font-size:.88rem}.note{white-space:normal}
+.bar{display:flex;align-items:center;gap:.7rem;margin-top:.7rem}.bar button{width:46px;height:46px;padding:0;border-radius:50%}.track{position:relative;flex:1;height:10px;background:#DDE1E6;border-radius:6px;cursor:pointer}
+.track i{position:absolute;left:0;top:0;bottom:0;background:#2B6CB0;border-radius:6px}.track b{position:absolute;top:-4px;width:6px;height:18px;margin-left:-3px;background:#F6C744;border-radius:3px}#time{font-variant-numeric:tabular-nums;font-weight:600;min-width:9ch}
+@media (max-height:600px){header{padding:.35rem .8rem}header h1{font-size:.95rem}main{padding:.4rem}.hint{display:none}.bar{margin-top:.35rem}.bar button{width:36px;height:36px}.card{padding:.8rem .9rem}.card h2{font-size:1rem;margin-bottom:.5rem}.choice{padding:.4rem .6rem}}
+.stage{max-height:calc(100vh - 120px);margin:0 auto;width:min(100%,calc((100vh - 120px) * 16 / 9))}@media (max-height:600px){.stage{max-height:calc(100vh - 80px);width:min(100%,calc((100vh - 80px) * 16 / 9))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}`;
+let playerJS = null;
+async function playerCode() { return playerJS ||= await (await fetch("assets/lesson-player.js")).text(); }
+function lessonData() { const d = { ...L }; delete d.videoName; d.items = sorted(); return d; }
+async function lessonHTML(videoSrc, opts = {}) {
+  const js = await playerCode(), safe = o => JSON.stringify(o).replace(/</g, "\\u003c");
+  const vars = `window.LESSON=${safe(lessonData())};${videoSrc ? `window.LESSON_VIDEO=${safe(videoSrc)};` : ""}window.LESSON_MODE=${safe(opts.mode || "standalone")};${captions ? `window.LESSON_CAPTIONS=${safe(captions)};` : ""}${opts.preview ? "window.LESSON_PREVIEW=true;" : ""}`;
+  return `<!doctype html><html lang="${esc(L.lang || "en")}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(L.title)}</title><style>${PLAYER_CSS}</style>${opts.head || ""}</head><body><script>${vars}<\/script><script>${js.replace(/<\/script/gi, "<\\/script")}<\/script></body></html>`;
+}
+function checkReady() { if (!L || (!videoFile && !L.yt)) { toast("Add a video first."); return false; } if (!L.items.length) { toast("Add at least one question or note first."); return false; } const bad = L.items.find(x => x.type === "mc" && (!x.prompt.trim() || x.choices.some(c => !c.text.trim()) || !x.choices.some(c => c.ok))); if (bad) { sel = bad.id; renderAll(); toast("Finish this question: it needs words, answers and at least one correct answer.", 4000); return false; } return true; }
+$("#previewBtn").onclick = async () => {
+  if (!checkReady()) return; P?.pause();
+  const html = await lessonHTML(videoFile ? videoURL : null, { preview: true }), w = document.createElement("div"); w.className = "preview";
+  w.innerHTML = `<div><header><strong>Student preview</strong><button class="btn" id="closePv">Close preview</button></header><iframe title="Student preview" allow="autoplay; fullscreen"></iframe></div>`; document.body.appendChild(w);
+  w.querySelector("iframe").srcdoc = html; $("#closePv").onclick = () => w.remove(); w.addEventListener("click", e => { if (e.target === w) w.remove(); });
+};
+let JSZipReady = null;
+const loadZip = () => JSZipReady ||= new Promise((r, j) => { const s = document.createElement("script"); s.src = "vendor/jszip/jszip.min.js"; s.onload = r; s.onerror = j; document.head.appendChild(s); });
+const slug = s => (s || "lesson").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lesson";
+$("#exportBtn").onclick = () => { if (!checkReady()) return; $("#sls").disabled = !!L.yt; $('[data-ex="embedHTML"]').disabled = !L.yt; $("#slsNote").textContent = L.yt ? "SLS needs everything inside the package, so use a video file rather than YouTube for SLS." : "Upload in SLS: Question, Free-Response, then Integrated Scorable Response. Set the maximum marks to " + L.items.filter(x => x.type === "mc").length + "."; $("#exportDlg").showModal(); };
+$("#exClose").onclick = () => $("#exportDlg").close();
+const vExt = () => (videoFile.name.match(/\.\w+$/) || [".mp4"])[0].toLowerCase();
+$("#exportDlg").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-ex]"); if (!b) return; const kind = b.dataset.ex;
+  try {
+    if (kind === "student") {
+      if (L.yt) { download(new Blob([await lessonHTML(null)], { type: "text/html" }), `${slug(L.title)}.html`); toast("Lesson saved: send students this one file, or put it on a website.", 5000); }
+      else { toast("Packing the lesson with its video…"); await loadZip(); const zip = new JSZip(), vname = `video${vExt()}`, folder = zip.folder(slug(L.title)); folder.file("lesson.html", await lessonHTML(vname)); folder.file(vname, videoFile); folder.file("READ ME FIRST.txt", `Open lesson.html in any web browser to start the lesson.\nKeep lesson.html and ${vname} together in the same folder.\n`); download(await zip.generateAsync({ type: "blob", compression: "STORE" }), `${slug(L.title)}.zip`); toast("Lesson saved: students unzip it and open lesson.html.", 6000); }
+    }
+    if (kind === "scorm") {
+      toast("Building the SCORM package…"); await loadZip(); const zip = new JSZip(), vname = L.yt ? null : `video${vExt()}`;
+      zip.file("index.html", await lessonHTML(vname, { mode: "scorm" })); if (vname) zip.file(vname, videoFile); zip.file("imsmanifest.xml", manifest(vname));
+      download(await zip.generateAsync({ type: "blob", compression: "STORE" }), `${slug(L.title)}-scorm.zip`); toast("SCORM package saved. Upload it to Moodle, Canvas, Blackboard or any SCORM 1.2 platform as a SCORM activity.", 6500);
+    }
+    if (kind === "sls") {
+      if (L.yt) return toast("For SLS, use a video file: SLS packages can’t load YouTube."); if (videoFile.size > 480 * 1024 * 1024) return toast("SLS allows up to 500 MB. Compress the video in Booth Video first.", 5000);
+      toast("Building the SLS package…"); await loadZip(); const zip = new JSZip(), vname = `video${vExt()}`, xapi = await (await fetch("vendor/xapi/xapiwrapper.min.js")).text();
+      zip.file("index.html", await lessonHTML(vname, { mode: "sls", head: `<script src="xapiwrapper.min.js"><\/script>` })); zip.file("xapiwrapper.min.js", xapi); zip.file(vname, videoFile);
+      download(await zip.generateAsync({ type: "blob", compression: "STORE" }), `${slug(L.title)}-sls.zip`); toast("SLS package saved. Upload it as an Integrated Scorable Response question.", 6500);
+    }
+    if (kind === "embedHTML") { const html = await lessonHTML(null); try { await navigator.clipboard.writeText(html); toast("Copied. In Google Sites, choose Embed, then Embed code, and paste.", 5000); } catch { toast("Couldn’t copy. Download the student lesson instead."); } }
+    if (kind === "embedURL") { const u = $("#embedUrl").value.trim(); if (!/^https?:\/\//.test(u)) return toast("Paste the web address where you put the lesson first."); const code = `<iframe src="${u.replace(/"/g, "&quot;")}" title="${esc(L.title)}" style="width:100%;aspect-ratio:16/11;border:0" allow="autoplay; fullscreen" allowfullscreen></iframe>`; try { await navigator.clipboard.writeText(code); toast("Embed code copied. Paste it into your website, blog or learning platform.", 5000); } catch { prompt("Copy this embed code:", code); } }
+    if (["student", "scorm", "sls"].includes(kind)) $("#exportDlg").close();
+    count("lesson_exports_" + kind);
+  } catch (err) { console.error(err); toast("Something went wrong building that file."); }
+});
+$("#capIn").onchange = async () => { const f = $("#capIn").files[0]; $("#capIn").value = ""; if (!f) return; let txt = await f.text(); if (!/^WEBVTT/.test(txt.trim())) txt = "WEBVTT\n\n" + txt.replace(/\r/g, "").replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, "$1.$2"); captions = txt; renderPane(); toast("Captions added"); };
+function manifest(vname) {
+  const x = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])), id = "booth-" + L.id;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${id}" version="1.0" xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+  <metadata><schema>ADL SCORM</schema><schemaversion>1.2</schemaversion></metadata>
+  <organizations default="org1"><organization identifier="org1"><title>${x(L.title)}</title>
+    <item identifier="item1" identifierref="res1" isvisible="true"><title>${x(L.title)}</title><adlcp:masteryscore>${L.pass ?? 60}</adlcp:masteryscore></item>
+  </organization></organizations>
+  <resources><resource identifier="res1" type="webcontent" adlcp:scormtype="sco" href="index.html"><file href="index.html"/>${vname ? `<file href="${vname}"/>` : ""}</resource></resources>
+</manifest>`;
+}
+$("#saveBtn").onclick = () => { if (!L) return; download(new Blob([JSON.stringify({ kind: "booth-lesson", v: 1, lesson: L })], { type: "application/json" }), `${slug(L.title)}-booth-lesson.json`); toast(videoFile ? "Lesson saved. When you open it again, Booth will ask for the same video file." : "Lesson saved."); };
+$("#openBtn").onclick = $("#openLesson").onclick = () => $("#projIn").click();
+$("#projIn").onchange = async () => {
+  const f = $("#projIn").files[0]; $("#projIn").value = ""; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (d.kind !== "booth-lesson") throw 0; L = d.lesson; sel = null;
+    if (L.yt) useYT(L.yt); else { toast(`Now choose the video: ${L.videoName || "the same video file"}`, 5000); const keep = L; $("#vidIn").onchange = () => { const v = $("#vidIn").files[0]; $("#vidIn").value = ""; $("#vidIn").onchange = () => { const x = $("#vidIn").files[0]; $("#vidIn").value = ""; if (x) useFile(x); }; if (!v) return; L = keep; useFile(v); L.items = keep.items; renderAll(); }; $("#vidIn").click(); } }
+  catch { toast("That isn’t a Booth lesson file."); }
+};
+
+/* ---------- Results dashboard ---------- */
+const R = [];
+$("#openResults").onclick = () => { if (!L) L = newLesson(); $("#empty").hidden = true; tab = "results"; $("#vid").hidden = true; renderAll(); };
+$("#resIn").onchange = async () => { const files = [...$("#resIn").files]; $("#resIn").value = ""; let n = 0; for (const f of files) { try { n += addResponse(JSON.parse(await f.text())); } catch { try { n += addCodes(await f.text(), true); } catch {} } } toast(`Added ${n} response${n === 1 ? "" : "s"}`); renderAll(); };
+function decode(code) { const b = code.trim().replace(/^BL1\./, "").replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(decodeURIComponent(escape(atob(b + "===".slice((b.length + 3) % 4))))); }
+function addCodes(text, quiet) { let n = 0; for (const line of String(text).split(/\s+/)) if (line.startsWith("BL1.")) { try { n += addResponse(decode(line)); } catch {} } if (!quiet) { toast(n ? `Added ${n} response${n === 1 ? "" : "s"}` : "No answer codes found. They start with BL1."); $("#codes") && ($("#codes").value = ""); renderAll(); } return n; }
+function sum(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+function addResponse(r) {
+  if (r?.kind !== "booth-lesson-response") return 0;
+  r._edited = r.check !== sum(JSON.stringify([r.lesson.id, r.student, r.score, r.answers]) + r.lesson.id);
+  const key = `${r.student.name}|${r.finishedAt}`; if (R.some(x => `${x.student.name}|${x.finishedAt}` === key)) return 0; R.push(r); return 1;
+}
+function renderResults() {
+  const box = $("#results"); box.hidden = tab !== "results"; $("#vid").hidden = tab === "results"; $("#tl").hidden = tab === "results"; $$(".stage>.row").forEach(r => r.hidden = tab === "results"); if (tab !== "results") return;
+  if (!R.length) { box.innerHTML = `<div class="res"><h2 style="margin:0">Class results</h2><p class="note">Add your students’ answers files or codes from the panel on the right. You’ll see each student’s score and how the class did on every question.</p></div>`; return; }
+  const lessons = [...new Set(R.map(r => r.lesson.title))], avg = Math.round(R.reduce((s, r) => s + (r.score.gradable ? r.score.correct / r.score.gradable : 0), 0) / R.length * 100), watched = Math.round(R.reduce((s, r) => s + r.watched, 0) / R.length);
+  const qs = new Map(); R.forEach(r => r.answers.forEach(a => { if (!qs.has(a.id)) qs.set(a.id, { ...a, list: [] }); qs.get(a.id).list.push({ name: r.student.name, a }); }));
+  const per = [...qs.values()].sort((a, b) => a.t - b.t).map((x, i) => {
+    let body = ""; const n = x.list.length;
+    if (x.type === "mc") { const right = x.list.filter(l => l.a.correct).length, pct = Math.round(right / n * 100), counts = {}; x.list.forEach(l => [].concat(l.a.answer || ["(skipped)"]).forEach(v => counts[v] = (counts[v] || 0) + 1)); body = `<p class="note"><b>${pct}%</b> answered correctly (${right} of ${n})${pct < 60 ? ". <b>Worth revisiting.</b>" : ""}</p><div class="bars">${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div><span>${esc(k)}</span><span class="b"><i style="width:${v / n * 100}%"></i></span><span>${v}</span></div>`).join("")}</div>`; }
+    else if (x.type === "poll") { const counts = {}; x.list.forEach(l => [].concat(l.a.answer || ["(skipped)"]).forEach(v => counts[v] = (counts[v] || 0) + 1)); body = `<div class="bars">${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div><span>${esc(k)}</span><span class="b"><i style="width:${v / n * 100}%"></i></span><span>${v}</span></div>`).join("")}</div>`; }
+    else if (x.type === "open") body = `<div style="display:grid;gap:.35rem">${x.list.map(l => `<p class="note" style="margin:0"><b>${esc(l.name)}:</b> ${esc(l.a.answer ?? "(skipped)")}</p>`).join("")}</div>`;
+    else return "";
+    return `<details class="sec" open><summary>${i + 1}. ${esc(x.prompt).slice(0, 90)} <small style="color:var(--muted)">${fmt(x.t)}</small></summary><div class="group">${body}</div></details>`;
+  }).join("");
+  box.innerHTML = `<div class="res"><h2 style="margin:0">Class results${lessons.length === 1 ? `: ${esc(lessons[0])}` : ""}</h2>${lessons.length > 1 ? `<p class="note"><b>These answers come from ${lessons.length} different lessons.</b> Clear them and add one lesson at a time for clearer results.</p>` : ""}
+    <div class="row"><span class="tag">${R.length} student${R.length === 1 ? "" : "s"}</span><span class="tag">Average score ${avg}%</span><span class="tag">Average watched ${watched}%</span></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Student</th><th>Class</th><th>Score</th><th>Watched</th><th>Finished</th><th></th></tr></thead><tbody>${R.map(r => `<tr><td>${esc(r.student.name)}</td><td>${esc(r.student.cls || "")}</td><td>${r.score.correct} / ${r.score.gradable}</td><td>${r.watched}%</td><td>${new Date(r.finishedAt).toLocaleString()}</td><td>${r._edited ? `<span class="tag" title="This file was changed after the student finished">Edited?</span>` : ""}</td></tr>`).join("")}</tbody></table></div>
+    <h3 style="margin:.4rem 0 0">Question by question</h3>${per}</div>`;
+}
+function csvOut() {
+  const qs = [...new Map(R.flatMap(r => r.answers.map(a => [a.id, a]))).values()].sort((a, b) => a.t - b.t), cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const rows = [["Student", "Class", "Lesson", "Score", "Out of", "Watched %", "Finished", "Possibly edited", ...qs.map((x, i) => `Q${i + 1} ${x.prompt}`)]];
+  R.forEach(r => rows.push([r.student.name, r.student.cls, r.lesson.title, r.score.correct, r.score.gradable, r.watched, r.finishedAt, r._edited ? "yes" : "", ...qs.map(x => { const a = r.answers.find(y => y.id === x.id); return a ? [].concat(a.answer ?? "(skipped)").join("; ") + (a.correct === null ? "" : a.correct ? " (right)" : " (wrong)") : ""; })]));
+  download(new Blob(["\ufeff" + rows.map(r => r.map(cell).join(",")).join("\r\n")], { type: "text/csv" }), `${slug(R[0].lesson.title)}-results.csv`);
+}
+window.BoothDrop = { accept: f => f.type.startsWith("video/") || /\.json$/i.test(f.name), acceptType: t => !t || t.startsWith("video/") || t === "application/json", label: () => "Drop a video to make a lesson, or answers files to see results", hint: "Video files, or the .json answers files students hand in.", reject: "Videos or answers files only.",
+  open: async files => { const v = files.find(f => f.type.startsWith("video/")); if (v) return useFile(v); let n = 0; for (const f of files) { try { n += addResponse(JSON.parse(await f.text())); } catch {} } if (!L) L = newLesson(); $("#empty").hidden = true; tab = "results"; toast(`Added ${n} response${n === 1 ? "" : "s"}`); renderAll(); }, onReject: () => toast("Drop a video, or students’ answers files.") };
+renderPane();
+</script>
+</body>
+</html>
